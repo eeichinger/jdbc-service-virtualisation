@@ -1,4 +1,4 @@
-package org.oaky.poc.servicevirtualisation;
+package org.eeichinger.servicevirtualisation.jdbc;
 
 import java.io.StringReader;
 import java.lang.reflect.Method;

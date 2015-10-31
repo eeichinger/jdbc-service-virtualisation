@@ -10,7 +10,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.oaky.poc.servicevirtualisation.JdbcServiceVirtualizationFactory;
+import org.eeichinger.servicevirtualisation.jdbc.JdbcServiceVirtualizationFactory;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
