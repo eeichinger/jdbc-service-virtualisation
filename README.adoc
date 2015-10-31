@@ -56,14 +56,8 @@ public void before() {
 
 ## Example "Spy Mode":
 
-[source,java]
-----
 include::src/test/java/example/UseWireMockToInterceptJdbcResultSetsTest.java[]
-----
 
 ## Example "Mock Mode":
 
-[source,java]
-----
 include::src/test/java/example/UseWireMockToMockJdbcResultSetsTest.java[]
-----
