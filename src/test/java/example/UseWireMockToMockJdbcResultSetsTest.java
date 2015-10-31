@@ -88,6 +88,9 @@ public class UseWireMockToMockJdbcResultSetsTest {
                 .post(WireMock.urlPathEqualTo("/sqlstub"))
                     // SQL Statement is posted in the body, use any available matchers to match
                 .withRequestBody(WireMock.equalTo("UPDATE PEOPLE set birthday=? WHERE name = ?"))
+                    // Parameters are sent with index has headername and value as headervalue
+                .withHeader("1", WireMock.equalTo(NAME_ERICH_EICHINGER))
+                .withHeader("2", WireMock.equalTo("1970-01-01"))
                     // return the number of rows affected
                 .willReturn(WireMock
                         .aResponse()

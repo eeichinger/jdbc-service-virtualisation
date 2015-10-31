@@ -1,4 +1,69 @@
+:toc: macro
 
-# JDBC Service Virtualisation
+# JDBC Service Virtualisation image:https://travis-ci.org/eeichinger/jdbc-service-virtualisation.svg?branch=master["Build Status", link="https://travis-ci.org/eeichinger/jdbc-service-virtualisation"]
 
-image:https://travis-ci.org/eeichinger/jdbc-service-virtualisation.svg?branch=master["Build Status", link="https://travis-ci.org/eeichinger/jdbc-service-virtualisation"]
+toc::[]
+
+## Overview
+
+Demonstrates you to use the technique to just spy on a real database and intercept/mock only selected jdbc queries
+
+Under the hood it uses P6Spy to spy on the jdbc connection and hooks into {@link PreparedStatement#executeQuery()} and {@link PreparedStatement#executeUpdate()}
+to redirect the call to WireMock.
+
+There are 2 modes:
+
+### Spy Mode
+
+In Spy Mode, the service virtualizer spies on a real datasource. In this case, only configured statements will be handled by WireMock, all other statements are routed through to the actual database.
+
+Spy Mode is configured by wrapping the original DataSource using spyOnDataSource():
+
+[source,java]
+----
+@Before
+public void before() {
+    // wiremock is listening on port WireMockRule#port(), point our Jdbc-Spy to it
+    JdbcServiceVirtualizationFactory myP6MockFactory = new JdbcServiceVirtualizationFactory();
+    myP6MockFactory.setTargetUrl("http://localhost:" + wireMockRule.port() + "/sqlstub");
+
+    // wrap the real datasource so we can spy/intercept it
+    DataSource dataSource = ... // grab real DataSource
+    wrappedDataSource = myP6MockFactory.spyOnDataSource( dataSource );
+
+    // use wrapped dataSource
+}
+----
+
+### Mock Mode
+
+In Mock Mode you don't need a real database. Any statement must be configured in WireMock. If WireMock returns 404 (i.e. no match was found), an {@link AssertionError} is thrown.
+
+[source,java]
+----
+@Before
+public void before() {
+    // wiremock is listening on port WireMockRule#port(), point our Jdbc-Spy to it
+    JdbcServiceVirtualizationFactory myP6MockFactory = new JdbcServiceVirtualizationFactory();
+    myP6MockFactory.setTargetUrl("http://localhost:" + wireMockRule.port() + "/sqlstub");
+
+    DataSource dataSource = myP6MockFactory.createMockDataSource();
+
+    // use dataSource as usual
+}
+----
+
+
+## Example "Spy Mode":
+
+[source,java]
+----
+include::src/test/java/example/UseWireMockToInterceptJdbcResultSetsTest.java[]
+----
+
+## Example "Mock Mode":
+
+[source,java]
+----
+include::src/test/java/example/UseWireMockToMockJdbcResultSetsTest.java[]
+----
