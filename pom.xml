@@ -289,6 +289,10 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-gpg-plugin</artifactId>
                 <version>1.5</version>
+                <configuration>
+                    <publicKeyring>${project.basedir}/local.pubring.gpg</publicKeyring>
+                    <secretKeyring>${project.basedir}/local.secring.gpg</secretKeyring>
+                </configuration>
                 <executions>
                     <execution>
                         <id>sign-artifacts</id>

@@ -1,6 +1,12 @@
 language: java
 jdk:
-  - oraclejdk8
+- oraclejdk8
 cache:
   directories:
-    - $HOME/.m2
+  - $HOME/.m2
+env:
+  global:
+    secure: MmOulp9fBR4eKF/guiOzsMmUTlzw8RYeKxP4NTXp/t5Waa98puhGF/HosrsIfixYhZwZJpkqW0KOiVYRiVjy4YyLsVbUlAMpfCWgQHL85WmG9AVabVeispxDkozOGSBilnsI+GPnPwlkl3SmVtDF7oeM7YzAmCpcrTKsTX0YrOFLIF8C0BPpuCsBtrdrlvMpYwp7ifKkBGasOg7g08Zu3w2nL68v8fs0NmtMlsUv+kLzn6HiQRRL8IW0HpNbW92I3zm0nZNrVjAgTtBa3H24XQ4lqD2T3HrkT4UaannnWvhABwbxzdAMIITOtgPqdhxKbP9omgmUm/+zee7nQ143wDYUzjKoX9imb1y8IcOANC8p3Jswz29ljXPnZVPiG8YbcDRxyTVNdtxUJE943dZPLTITxWiERk8Mp8hYXHw2MvEk6EQF3j2vdGIivz6eqP2FLsMKBGPVybY9zU5Ocyc6x+3fgwUFgXA5e1FtdHijFBVxFwkM2E8mq4xLTZEoEvvoSqkaoR0VbFIpdn73Rn7qK/M8Olf00jGkcKnI2TpRoJ43XD36iW6Zzme+DhfDfSzOVxEM7ukjeIX/Sgts39pkZjkv+ca7gH5ASHxDOr4GmOi2jyNvjYRKYvpnIAK1XJeCATGC6u+IbqluTsLfFL3i2xM3UcDQ3jUW3glyTcEOKOI=
+before_install:
+  - openssl aes-256-cbc -pass pass:$ENCRYPTION_PASSWORD -in secring.gpg.enc -out local.secring.gpg -d
+  - openssl aes-256-cbc -pass pass:$ENCRYPTION_PASSWORD -in pubring.gpg.enc -out local.pubring.gpg -d
