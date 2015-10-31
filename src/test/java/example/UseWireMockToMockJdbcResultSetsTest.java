@@ -11,6 +11,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.oaky.poc.servicevirtualisation.JdbcServiceVirtualizationFactory;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import static org.hamcrest.MatcherAssert.*;
@@ -76,6 +77,61 @@ public class UseWireMockToMockJdbcResultSetsTest {
             );
 
         assertThat(dateTime, equalTo("1980-01-01"));
+    }
+
+    @Test
+    public void intercepts_matching_update_and_responds_with_int() {
+        final String NAME_ERICH_EICHINGER = "Erich Eichinger";
+
+        // setup mock resultsets
+        WireMock.stubFor(WireMock
+                .post(WireMock.urlPathEqualTo("/sqlstub"))
+                    // SQL Statement is posted in the body, use any available matchers to match
+                .withRequestBody(WireMock.equalTo("UPDATE PEOPLE set birthday=? WHERE name = ?"))
+                    // return the number of rows affected
+                .willReturn(WireMock
+                        .aResponse()
+                        .withStatus(200)
+                        .withBody("2")
+                )
+        )
+        ;
+
+        int res = jdbcTemplate.update(
+                "UPDATE PEOPLE set birthday=? WHERE name = ?", "1970-01-01", NAME_ERICH_EICHINGER
+            );
+
+        assertThat(res, equalTo(2));
+    }
+
+    @Test
+    public void emulate_sqlexception_by_returning_400() {
+        thrown.expect(BadSqlGrammarException.class);
+
+        final String NAME = "Hugo Simon";
+
+        // setup mock resultsets
+        WireMock.stubFor(WireMock
+                .post(WireMock.urlPathEqualTo("/sqlstub"))
+                    // SQL Statement is posted in the body, use any available matchers to match
+                .withRequestBody(WireMock.equalTo("SYNTAX ERROR"))
+                    // return a recordset
+                .willReturn(WireMock
+                        .aResponse()
+                        .withStatus(400)
+                        .withHeader("reason", "unexpected token: SYNTAX")
+                        .withHeader("SQLState", "42581")
+                        .withHeader("vendorCode", "1234")
+                )
+        )
+        ;
+
+        String dateTime = jdbcTemplate
+            .queryForObject(
+                "SYNTAX ERROR"
+                , String.class
+                , NAME
+            );
     }
 
     @Test

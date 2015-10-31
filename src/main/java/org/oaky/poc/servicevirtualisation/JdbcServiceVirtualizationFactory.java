@@ -11,10 +11,11 @@ import java.util.*;
 import javax.sql.DataSource;
 
 import com.mockrunner.base.NestedApplicationException;
+import com.mockrunner.jdbc.CallableStatementResultSetHandler;
 import com.mockrunner.jdbc.PreparedStatementResultSetHandler;
+import com.mockrunner.jdbc.StatementResultSetHandler;
 import com.mockrunner.mock.jdbc.JDBCMockObjectFactory;
 import com.mockrunner.mock.jdbc.MockConnection;
-import com.mockrunner.mock.jdbc.MockParameterMap;
 import com.mockrunner.mock.jdbc.MockResultSet;
 import com.p6spy.engine.common.ConnectionInformation;
 import com.p6spy.engine.logging.P6LogOptions;
@@ -25,6 +26,7 @@ import com.p6spy.engine.proxy.ProxyFactory;
 import com.p6spy.engine.spy.P6Factory;
 import com.p6spy.engine.spy.P6LoadableOptions;
 import com.p6spy.engine.spy.option.P6OptionsRepository;
+import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
@@ -68,16 +70,32 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
             public void restoreDrivers() {
                 // we don't want to auto-hijack DriverManager
             }
+
+            @Override
+            public MockConnection createMockConnection() {
+                return new MockConnection(
+                    new StatementResultSetHandler() {
+                        @Override
+                        public SQLException getSQLException(String sql) {
+                            throw new AssertionError("unmatched sql statement: '" + sql + "'");
+                        }
+                    }
+                    , new PreparedStatementResultSetHandler() {
+                    @Override
+                    public SQLException getSQLException(String sql) {
+                        throw new AssertionError("unmatched sql statement: '" + sql + "'");
+                    }
+                }
+                    , new CallableStatementResultSetHandler() {
+                    @Override
+                    public SQLException getSQLException(String sql) {
+                        throw new AssertionError("unmatched sql statement: '" + sql + "'");
+                    }
+                }
+                );
+            }
         };
         final MockConnection mockConnection = jdbcMockObjectFactory.getMockConnection();
-        final PreparedStatementResultSetHandler rsHandler = mockConnection.getPreparedStatementResultSetHandler();
-        rsHandler.setUseRegularExpressions(true);
-        rsHandler.prepareResultSet(".*", new MockResultSet("unmatched") {
-            @Override
-            public MockResultSet evaluate(String sql, MockParameterMap parameters) {
-                throw new AssertionError("unmatched sql statement: '" + sql + "'");
-            }
-        });
         jdbcMockObjectFactory.getMockDataSource().setupConnection(mockConnection);
         return interceptDataSource(jdbcMockObjectFactory.getMockDataSource());
     }
@@ -140,24 +158,46 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
         };
     }
 
-    protected P6MockDataSourceInvocationHandler createDataSourceInvocationHandler(DataSource dataSource) {
-        return new P6MockDataSourceInvocationHandler(dataSource);
+    protected Delegate createConnectionPrepareStatementDelegate(final ConnectionInformation connectionInformation) {
+        return (final Object proxy, final Object underlying, final Method method, final Object[] args) -> {
+            PreparedStatement statement = (PreparedStatement) method.invoke(underlying, args);
+            String query = (String) args[0];
+            GenericInvocationHandler<PreparedStatement> invocationHandler = createPreparedStatementInvocationHandler(connectionInformation, statement, query);
+            return ProxyFactory.createProxy(statement, invocationHandler);
+        };
     }
 
-    protected P6MockConnectionInvocationHandler createConnectionInvocationHandler(Connection conn) {
-        return new P6MockConnectionInvocationHandler(conn);
-    }
+    protected Delegate createPreparedStatementExecuteDelegate(final PreparedStatementInformation preparedStatementInformation) {
+        return (final Object proxy, final Object underlying, final Method method, final Object[] args) -> {
 
-    protected P6MockConnectionPrepareStatementDelegate createConnectionPrepareStatementDelegate(ConnectionInformation connectionInformation) {
-        return new P6MockConnectionPrepareStatementDelegate(connectionInformation);
-    }
+            CloseableHttpClient httpclient = HttpClients.createDefault();
 
-    protected P6MockPreparedStatementInvocationHandler createPreparedStatementInvocationHandler(ConnectionInformation connectionInformation, PreparedStatement statement, String query) {
-        return new P6MockPreparedStatementInvocationHandler(statement, connectionInformation, query);
-    }
+            final String sql = preparedStatementInformation.getSql();
+            HttpPost httpPost = new HttpPost(targetUrl);
+            for (Map.Entry<Integer, Object> e : preparedStatementInformation.getParameterValues().entrySet()) {
+                httpPost.setHeader(e.getKey().toString(), Objects.toString(e.getValue()));
+            }
+            httpPost.setEntity(new StringEntity(sql, "utf-8"));
 
-    protected P6MockPreparedStatementExecuteDelegate createPreparedStatementExecuteDelegate(PreparedStatementInformation preparedStatementInformation) {
-        return new P6MockPreparedStatementExecuteDelegate(preparedStatementInformation);
+            try (CloseableHttpResponse response = httpclient.execute(httpPost)) {
+                if (response.getStatusLine().getStatusCode() == 200) {
+                    String responseContent = EntityUtils.toString(response.getEntity());
+                    if (int.class.equals(method.getReturnType())) {
+                        return Integer.parseInt(responseContent);
+                    }
+                    return createSybaseResultSet(true, "x", responseContent);
+                }
+                if (response.getStatusLine().getStatusCode() == 400) {
+                    final Header reasonHeader = response.getFirstHeader("reason");
+                    if (reasonHeader == null) throw new AssertionError("missing 'reason' response header");
+                    final String sqlState = response.getFirstHeader("sqlstate") != null ? response.getFirstHeader("sqlstate").getValue() : null;
+                    final int vendorCode = response.getFirstHeader("vendorcode") != null ? Integer.parseInt(response.getFirstHeader("vendorcode").getValue()) : 0;
+                    throw new SQLException(reasonHeader.getValue(), sqlState, vendorCode);
+                }
+            }
+
+            return method.invoke(underlying, args);
+        };
     }
 
     public class P6MockDataSourceInvocationHandler extends GenericInvocationHandler<DataSource> {
@@ -189,28 +229,6 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
                 prepareStatementDelegate
             );
         }
-    }
-
-    public class P6MockConnectionPrepareStatementDelegate implements Delegate {
-
-        private final ConnectionInformation connectionInformation;
-
-        public ConnectionInformation getConnectionInformation() {
-            return connectionInformation;
-        }
-
-        public P6MockConnectionPrepareStatementDelegate(final ConnectionInformation connectionInformation) {
-            this.connectionInformation = connectionInformation;
-        }
-
-        @Override
-        public Object invoke(final Object proxy, final Object underlying, final Method method, final Object[] args) throws Throwable {
-            PreparedStatement statement = (PreparedStatement) method.invoke(underlying, args);
-            String query = (String) args[0];
-            GenericInvocationHandler<PreparedStatement> invocationHandler = createPreparedStatementInvocationHandler(getConnectionInformation(), statement, query);
-            return ProxyFactory.createProxy(statement, invocationHandler);
-        }
-
     }
 
     public class P6MockPreparedStatementInvocationHandler extends GenericInvocationHandler<PreparedStatement> {
@@ -247,7 +265,7 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
             PreparedStatementInformation preparedStatementInformation = new PreparedStatementInformation(connectionInformation);
             preparedStatementInformation.setStatementQuery(query);
 
-            P6MockPreparedStatementExecuteDelegate executeDelegate = createPreparedStatementExecuteDelegate(preparedStatementInformation);
+            Delegate executeDelegate = createPreparedStatementExecuteDelegate(preparedStatementInformation);
             Delegate setParameterValueDelegate = new P6MockPreparedStatementSetParameterValueDelegate(preparedStatementInformation);
 
             addDelegate(
@@ -273,34 +291,16 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
         }
     }
 
-    public class P6MockPreparedStatementExecuteDelegate implements Delegate {
-        private final PreparedStatementInformation preparedStatementInformation;
+    protected P6MockDataSourceInvocationHandler createDataSourceInvocationHandler(DataSource dataSource) {
+        return new P6MockDataSourceInvocationHandler(dataSource);
+    }
 
-        public P6MockPreparedStatementExecuteDelegate(final PreparedStatementInformation preparedStatementInformation) {
-            this.preparedStatementInformation = preparedStatementInformation;
-        }
+    protected P6MockConnectionInvocationHandler createConnectionInvocationHandler(Connection conn) {
+        return new P6MockConnectionInvocationHandler(conn);
+    }
 
-        @Override
-        public Object invoke(final Object proxy, final Object underlying, final Method method, final Object[] args) throws Throwable {
-
-            CloseableHttpClient httpclient = HttpClients.createDefault();
-
-            final String sql = preparedStatementInformation.getSql();
-            HttpPost httpPost = new HttpPost(targetUrl);
-            for (Map.Entry<Integer, Object> e : preparedStatementInformation.getParameterValues().entrySet()) {
-                httpPost.setHeader(e.getKey().toString(), Objects.toString(e.getValue()));
-            }
-            httpPost.setEntity(new StringEntity(sql, "utf-8"));
-
-            try (CloseableHttpResponse response = httpclient.execute(httpPost)) {
-                String responseContent = EntityUtils.toString(response.getEntity());
-                if (response.getStatusLine().getStatusCode() == 200) {
-                    return createSybaseResultSet(true, "x", responseContent);
-                }
-            }
-
-            return method.invoke(underlying, args);
-        }
+    protected P6MockPreparedStatementInvocationHandler createPreparedStatementInvocationHandler(ConnectionInformation connectionInformation, PreparedStatement statement, String query) {
+        return new P6MockPreparedStatementInvocationHandler(statement, connectionInformation, query);
     }
 
     /**

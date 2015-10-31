@@ -82,6 +82,31 @@ public class UseWireMockToInterceptJdbcResultSetsTest {
     }
 
     @Test
+    public void intercepts_matching_update_and_responds_with_int() {
+        final String NAME_ERICH_EICHINGER = "Erich Eichinger";
+
+        // setup mock resultsets
+        WireMock.stubFor(WireMock
+                .post(WireMock.urlPathEqualTo("/sqlstub"))
+                    // SQL Statement is posted in the body, use any available matchers to match
+                .withRequestBody(WireMock.equalTo("UPDATE PEOPLE set birthday=? WHERE name = ?"))
+                    // return the number of rows affected
+                .willReturn(WireMock
+                        .aResponse()
+                        .withStatus(200)
+                        .withBody("2")
+                )
+        )
+        ;
+
+        int res = jdbcTemplate.update(
+            "UPDATE PEOPLE set birthday=? WHERE name = ?", "1970-01-01", NAME_ERICH_EICHINGER
+        );
+
+        assertThat(res, equalTo(2));
+    }
+
+    @Test
     public void intercepts_matching_query_and_responds_with_mockresultset() {
         final String NAME_ERICH_EICHINGER = "Erich Eichinger";
 
