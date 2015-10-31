@@ -87,10 +87,10 @@ public class UseWireMockToMockJdbcResultSetsTest {
         WireMock.stubFor(WireMock
                 .post(WireMock.urlPathEqualTo("/sqlstub"))
                     // SQL Statement is posted in the body, use any available matchers to match
-                .withRequestBody(WireMock.equalTo("UPDATE PEOPLE set birthday=? WHERE name = ?"))
+                .withRequestBody(WireMock.equalTo("UPDATE PEOPLE set birthday=? WHERE name=?"))
                     // Parameters are sent with index has headername and value as headervalue
-                .withHeader("1", WireMock.equalTo(NAME_ERICH_EICHINGER))
-                .withHeader("2", WireMock.equalTo("1970-01-01"))
+                .withHeader("1", WireMock.equalTo("1970-01-01"))
+                .withHeader("2", WireMock.equalTo(NAME_ERICH_EICHINGER))
                     // return the number of rows affected
                 .willReturn(WireMock
                         .aResponse()
@@ -101,7 +101,7 @@ public class UseWireMockToMockJdbcResultSetsTest {
         ;
 
         int res = jdbcTemplate.update(
-                "UPDATE PEOPLE set birthday=? WHERE name = ?", "1970-01-01", NAME_ERICH_EICHINGER
+                "UPDATE PEOPLE set birthday=? WHERE name=?", "1970-01-01", NAME_ERICH_EICHINGER
             );
 
         assertThat(res, equalTo(2));
