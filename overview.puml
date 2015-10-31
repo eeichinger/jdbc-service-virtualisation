@@ -1,0 +1,34 @@
+@startuml
+
+title Intercept/Mock Flow Overview
+
+hide footbox
+
+participant client as "Client"
+participant vdatasource as "DataSource Wrapper"
+participant wiremock as "WireMock"
+participant rdatasource as "Real DataSource"
+
+client -\ vdatasource: executeQuery("select * from mytable")
+
+vdatasource -\ wiremock: POST /sqlstub \n\
+{\n\
+ sql: "select * from mytable" \n\
+ , parameters[]\n\
+ }
+
+wiremock -> wiremock: lookup match
+
+alt NO STUB -> continue
+  vdatasource \- wiremock: 404
+  vdatasource -> rdatasource: executeQuery("select * from mytable")
+
+else FOUND STUB
+
+  vdatasource \- wiremock: <recordset>
+
+end
+
+client \- vdatasource: ResultSet
+
+@enduml

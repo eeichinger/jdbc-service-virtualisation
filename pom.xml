@@ -42,6 +42,35 @@
                     <showWarnings>true</showWarnings>
                 </configuration>
             </plugin>
+            <plugin>
+                <groupId>com.github.jeluard</groupId>
+                <artifactId>plantuml-maven-plugin</artifactId>
+                <version>7941</version>
+                <dependencies>
+                    <dependency>
+                        <groupId>net.sourceforge.plantuml</groupId>
+                        <artifactId>plantuml</artifactId>
+                        <version>8030</version>
+                    </dependency>
+                </dependencies>
+                <configuration>
+                    <sourceFiles>
+                        <directory>${project.basedir}</directory>
+                        <includes>
+                            <include>**/*.puml</include>
+                        </includes>
+                    </sourceFiles>
+                    <outputInSourceDirectory>true</outputInSourceDirectory>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
     <dependencyManagement>
