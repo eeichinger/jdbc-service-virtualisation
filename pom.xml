@@ -8,6 +8,32 @@
     <artifactId>jdbc-service-virtualisation</artifactId>
     <version>0.0.1-SNAPSHOT</version>
 
+    <name>${project.groupId}:${project.artifactId}</name>
+    <description>A library to support JDBC spying and mocking via HTTP using a potentially remote WireMock or similar.</description>
+    <url>https://github.com/eeichinger/jdbc-service-virtualisation</url>
+
+    <licenses>
+        <license>
+            <name>The Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <name>Erich Eichinger</name>
+            <email>oaky@gmx.at</email>
+            <organization>private</organization>
+            <organizationUrl>https://github.com/eeichinger</organizationUrl>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:git@github.com:eeichinger/jdbc-service-virtualisation.git</connection>
+        <developerConnection>scm:git:git@github.com:eeichinger/jdbc-service-virtualisation.git</developerConnection>
+        <url>git@github.com:eeichinger/jdbc-service-virtualisation.git</url>
+    </scm>
+
     <properties>
         <!-- settings -->
         <file.encoding>utf-8</file.encoding>
@@ -75,6 +101,60 @@
                             <ci-svn-revision>${ci-build-revision}</ci-svn-revision>
                         </manifestEntries>
                     </archive>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>2.2.1</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                        </manifest>
+                        <manifestEntries>
+                            <ci-build-id>${ci-build-id}</ci-build-id>
+                            <ci-build-tag>${ci-build-tag}</ci-build-tag>
+                            <ci-build-url>${ci-build-url}</ci-build-url>
+                            <ci-build-time>${ci-build-time}</ci-build-time>
+                            <ci-svn-revision>${ci-build-revision}</ci-svn-revision>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <version>2.10.1</version>
+                <executions>
+                    <execution>
+                        <id>generate-javadoc</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <show>protected</show>
+                    <attach>true</attach>
+                    <excludePackageNames>*.internal.*:com.*</excludePackageNames>
+                    <tags>
+                        <tag>
+                            <name>example.</name>
+                            <placement>aoptcmf</placement>
+                            <head>Example :</head>
+                        </tag>
+                    </tags>
                 </configuration>
             </plugin>
             <plugin>
@@ -156,6 +236,7 @@
                         </bannedDependencies>
                         <banDuplicateClasses>
                             <findAllDuplicates>true</findAllDuplicates>
+<!--
                             <dependencies>
                                 <dependency>
                                     <groupId>org.eclipse.jetty</groupId>
@@ -164,6 +245,7 @@
                                     </ignoreClasses>
                                 </dependency>
                             </dependencies>
+-->
                         </banDuplicateClasses>
                     </rules>
                     <fail>true</fail>
@@ -181,7 +263,7 @@
                     <dependency>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>extra-enforcer-rules</artifactId>
-                        <version>1.0-beta-2</version>
+                        <version>1.0-beta-3</version>
                     </dependency>
                 </dependencies>
             </plugin>
