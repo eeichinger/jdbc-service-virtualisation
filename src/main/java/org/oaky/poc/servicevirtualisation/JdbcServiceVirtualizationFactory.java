@@ -310,6 +310,7 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
      * @return MockResultSet Results read from XML
      * <code>Document</code>.
      */
+    @SuppressWarnings("rawtypes")
     public MockResultSet createSybaseResultSet(boolean trim, String id, String xml) {
         MockResultSet resultSet = new MockResultSet(id);
         SAXBuilder builder = new SAXBuilder();
