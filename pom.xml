@@ -4,7 +4,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>org.oaky.poc.service-virtualisation</groupId>
+    <groupId>org.eeichinger.service-virtualisation</groupId>
     <artifactId>jdbc-service-virtualisation</artifactId>
     <version>0.0.1-SNAPSHOT</version>
 
@@ -12,17 +12,33 @@
         <!-- settings -->
         <file.encoding>utf-8</file.encoding>
         <java.version>1.8</java.version>
+        <maven.version>3.2.3</maven.version>
+        <maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ss'Z'</maven.build.timestamp.format>
+        <project.build.sourceEncoding>${file.encoding}</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>${file.encoding}</project.reporting.outputEncoding>
+        <!-- JENKINS vars for embedding into manifest - taken from https://wiki.jenkins-ci.org/display/JENKINS/Building+a+software+project#Buildingasoftwareproject-JenkinsSetEnvironmentVariables -->
+        <ci-build-id>${env.TRAVIS_BUILD_ID}</ci-build-id>
+        <ci-build-tag>${env.TRAVIS_TAG}</ci-build-tag>
+        <ci-build-url>${env.TRAVIS_REPO_SLUG}</ci-build-url>
+        <ci-build-time>${maven.build.timestamp}</ci-build-time>
+        <ci-build-revision>${env.TRAVIS_COMMIT}</ci-build-revision>
         <!-- lib versions -->
         <slf4j.version>1.7.12</slf4j.version>
         <logback.version>1.1.3</logback.version>
         <spring.version>4.1.7.RELEASE</spring.version>
+        <jackson.version>2.5.2</jackson.version>
     </properties>
+
+    <prerequisites>
+        <maven>${maven.version}</maven>
+    </prerequisites>
 
     <build>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.3</version>
                 <configuration>
                     <encoding>${file.encoding}</encoding>
                     <source>${java.version}</source>
@@ -40,6 +56,25 @@
                         <arg>-XprintRounds</arg>
                     </compilerArgs>
                     <showWarnings>true</showWarnings>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.4</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                        </manifest>
+                        <manifestEntries>
+                            <ci-build-id>${ci-build-id}</ci-build-id>
+                            <ci-build-tag>${ci-build-tag}</ci-build-tag>
+                            <ci-build-url>${ci-build-url}</ci-build-url>
+                            <ci-build-time>${ci-build-time}</ci-build-time>
+                            <ci-svn-revision>${ci-build-revision}</ci-svn-revision>
+                        </manifestEntries>
+                    </archive>
                 </configuration>
             </plugin>
             <plugin>
@@ -71,15 +106,137 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>1.3.1</version>
+                <configuration>
+                    <rules>
+                        <requireMavenVersion>
+                            <version>${maven.version}</version>
+                        </requireMavenVersion>
+                        <requireJavaVersion>
+                            <version>${java.version}</version>
+                        </requireJavaVersion>
+                        <requireReleaseDeps>
+                            <message>No Snapshots dependencies allowed!</message>
+                            <onlyWhenRelease>true</onlyWhenRelease>
+                        </requireReleaseDeps>
+                        <bannedDependencies>
+                            <searchTransitive>true</searchTransitive>
+                            <excludes>
+                                <!-- Use new org.javassist instead -->
+                                <exclude>javassist:javassist</exclude>
+                                <exclude>org.mockito:mockito-all</exclude>
+                                <!-- Use new org.aspectj instead -->
+                                <exclude>aspectj:aspectj*</exclude>
+                                <exclude>org.aspectj:aspectjrt</exclude>
+                                <!-- Ban usage of other logging frameworks. If there are
+                                     3rd party frameworks using them, they should be picked
+                                     up via the slf4j bridges -->
+                                <exclude>commons-logging</exclude>
+                                <exclude>log4j</exclude>
+                                <!-- Ban Spring frameworks older than 3.1 -->
+                                <!-- TODO, this may need to change to be more specific as not
+                                     all spring sub modules follow the 3.2.X naming yet-->
+                                <exclude>org.springframework:*</exclude>
+                                <exclude>org.sl4fj:*</exclude>
+                                <!--
+                                <exclude>org.springframework:*:(,${spring.version}),(${spring.version},)</exclude>
+                                <exclude>org.slf4j:*:(,${slf4j.version}),(${slf4j.version},)</exclude>
+-->
+                                <!-- Should rather be using javax.servlet:javax.servlet-api:3.0.1 -->
+                                <exclude>javax.servlet:servlet-api</exclude>
+                            </excludes>
+                            <includes>
+                                <!-- Mandate use of Spring and Slf4j for consistency -->
+                                <include>org.springframework:*:[${spring.version}]</include>
+                                <include>org.slf4j:*:[${slf4j.version}]</include>
+                            </includes>
+                        </bannedDependencies>
+                        <banDuplicateClasses>
+                            <findAllDuplicates>true</findAllDuplicates>
+                            <dependencies>
+                                <dependency>
+                                    <groupId>org.eclipse.jetty</groupId>
+                                    <ignoreClasses>
+                                        <ignoreClass>*</ignoreClass>
+                                    </ignoreClasses>
+                                </dependency>
+                            </dependencies>
+                        </banDuplicateClasses>
+                    </rules>
+                    <fail>true</fail>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>enforce-all</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>extra-enforcer-rules</artifactId>
+                        <version>1.0-beta-2</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
         </plugins>
     </build>
     <dependencyManagement>
         <dependencies>
             <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-api</artifactId>
+                <version>${slf4j.version}</version>
+                <scope>compile</scope>
+            </dependency>
+            <dependency>
                 <groupId>org.springframework</groupId>
                 <artifactId>spring-core</artifactId>
                 <version>${spring.version}</version>
                 <scope>test</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>commons-logging</groupId>
+                        <artifactId>commons-logging</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpclient</artifactId>
+                <version>4.5</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>commons-logging</groupId>
+                        <artifactId>commons-logging</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.httpcomponents</groupId>
+                <artifactId>httpcore</artifactId>
+                <version>4.4.1</version>
                 <exclusions>
                     <exclusion>
                         <groupId>commons-logging</groupId>
@@ -206,6 +363,12 @@
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
             <version>4.5</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-logging</groupId>
+                    <artifactId>commons-logging</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 </project>
