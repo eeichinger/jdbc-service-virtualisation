@@ -1,4 +1,4 @@
-package example;
+package org.oaky.poc.servicevirtualisation;
 
 import java.io.StringReader;
 import java.lang.reflect.Method;

@@ -1,5 +1,7 @@
 package example;
 
+import java.sql.PreparedStatement;
+
 import javax.sql.DataSource;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
@@ -8,12 +10,20 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.springframework.dao.EmptyResultDataAccessException;
+import org.oaky.poc.servicevirtualisation.MyP6MockFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import static org.hamcrest.MatcherAssert.*;
 import static org.hamcrest.Matchers.*;
 
+/**
+ * Demonstrates you to use the technique to just spy on a real database and intercept/mock only selected jdbc queries
+ *
+ * Under the hood it uses P6Spy to spy on the jdbc connection and hooks into {@link PreparedStatement#executeQuery()}
+ * to redirect the call to WireMock.
+ *
+ * If WireMock returns 404 (i.e. no match was found), an {@link AssertionError} is thrown.
+ */
 public class UseWireMockToMockJdbcResultSetsTest {
 
     @Rule

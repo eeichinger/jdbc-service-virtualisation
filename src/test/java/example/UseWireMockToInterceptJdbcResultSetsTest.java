@@ -1,17 +1,18 @@
 package example;
 
+import java.sql.PreparedStatement;
+
 import javax.sql.DataSource;
 
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
-import com.mockrunner.mock.jdbc.JDBCMockObjectFactory;
-import com.mockrunner.mock.jdbc.MockDataSource;
 import lombok.SneakyThrows;
 import org.hsqldb.HsqlException;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.oaky.poc.servicevirtualisation.MyP6MockFactory;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactory;
@@ -21,6 +22,14 @@ import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import static org.hamcrest.MatcherAssert.*;
 import static org.hamcrest.Matchers.*;
 
+/**
+ * Demonstrates you to use the technique to just spy on a real database and intercept/mock only selected jdbc queries.
+ *
+ * Under the hood it uses P6Spy to spy on the jdbc connection and hooks into {@link PreparedStatement#executeQuery()} to
+ * redirect the call to WireMock.
+ *
+ * If WireMock returns 404 (i.e. no match was found), the query is passed through to the real datasource.
+ */
 public class UseWireMockToInterceptJdbcResultSetsTest {
 
     @Rule
@@ -53,11 +62,12 @@ public class UseWireMockToInterceptJdbcResultSetsTest {
 
     @Before
     public void before() {
+        // wiremock is listening on port WireMockRule#port(), point our Jdbc-Spy to it
         MyP6MockFactory myP6MockFactory = new MyP6MockFactory();
         myP6MockFactory.setTargetUrl("http://localhost:" + wireMockRule.port() + "/sqlstub");
 
+        // wrap the real datasource so we can spy/intercept it
         DataSource dataSource = myP6MockFactory.spyOnDataSource(createHSQLDataSource());
-//        DataSource dataSource = myP6MockFactory.createMockDataSource();
 
         jdbcTemplate = new JdbcTemplate(dataSource);
     }
@@ -117,13 +127,11 @@ public class UseWireMockToInterceptJdbcResultSetsTest {
 
         final String NAME = "Hugo Simon";
 
-        String dateTime = jdbcTemplate
+        jdbcTemplate
             .queryForObject(
                 "SYNTAX ERROR STATEMENT"
                 , String.class
                 , NAME
             );
-
-        assertThat(dateTime, equalTo("2012-01-02"));
     }
 }
