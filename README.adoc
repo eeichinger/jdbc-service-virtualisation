@@ -1,0 +1,4 @@
+
+# JDBC Service Virtualisation
+
+image:https://travis-ci.org/eeichinger/jdbc-service-virtualisation.svg?branch=master["Build Status", link="https://travis-ci.org/eeichinger/jdbc-service-virtualisation"]
