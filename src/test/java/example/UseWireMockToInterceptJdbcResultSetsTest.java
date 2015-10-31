@@ -8,14 +8,17 @@ import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import lombok.SneakyThrows;
 import org.hsqldb.HsqlException;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.oaky.poc.servicevirtualisation.MyP6MockFactory;
+import org.oaky.poc.servicevirtualisation.JdbcServiceVirtualizationFactory;
 import org.springframework.core.io.ByteArrayResource;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactory;
+import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactoryBean;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 
@@ -38,10 +41,11 @@ public class UseWireMockToInterceptJdbcResultSetsTest {
     @Rule
     public ExpectedException thrown = ExpectedException.none();
 
+    EmbeddedDatabaseFactoryBean databaseFactory;
     JdbcTemplate jdbcTemplate;
 
     @SneakyThrows
-    public DataSource createHSQLDataSource() {
+    public EmbeddedDatabaseFactoryBean createHSQLDatabaseFactory() {
         final ResourceDatabasePopulator dbPopulator = new ResourceDatabasePopulator();
         dbPopulator.addScript(new ByteArrayResource(("" +
             "CREATE TABLE PEOPLE (" +
@@ -53,23 +57,28 @@ public class UseWireMockToInterceptJdbcResultSetsTest {
             "INSERT INTO PEOPLE(name, birthday) VALUES('Hugo Simon', '2012-01-02');\n"
         ).getBytes("utf-8")));
 
-        EmbeddedDatabaseFactory dbFactory = new EmbeddedDatabaseFactory();
+        EmbeddedDatabaseFactoryBean dbFactory = new EmbeddedDatabaseFactoryBean();
         dbFactory.setDatabaseType(EmbeddedDatabaseType.HSQL);
         dbFactory.setDatabasePopulator(dbPopulator);
-
-        return dbFactory.getDatabase();
+        return dbFactory;
     }
 
     @Before
     public void before() {
         // wiremock is listening on port WireMockRule#port(), point our Jdbc-Spy to it
-        MyP6MockFactory myP6MockFactory = new MyP6MockFactory();
+        JdbcServiceVirtualizationFactory myP6MockFactory = new JdbcServiceVirtualizationFactory();
         myP6MockFactory.setTargetUrl("http://localhost:" + wireMockRule.port() + "/sqlstub");
 
         // wrap the real datasource so we can spy/intercept it
-        DataSource dataSource = myP6MockFactory.spyOnDataSource(createHSQLDataSource());
+        databaseFactory = createHSQLDatabaseFactory();
+        DataSource dataSource = myP6MockFactory.spyOnDataSource(databaseFactory.getDatabase());
 
         jdbcTemplate = new JdbcTemplate(dataSource);
+    }
+
+    @After
+    public void after() {
+        databaseFactory.destroy();
     }
 
     @Test
@@ -80,7 +89,7 @@ public class UseWireMockToInterceptJdbcResultSetsTest {
         WireMock.stubFor(WireMock
                 .post(WireMock.urlPathEqualTo("/sqlstub"))
                     // SQL Statement is posted in the body, use any available matchers to match
-                .withRequestBody(WireMock.equalTo("SELECT birthday FROM DM.PEOPLE WHERE name = ?"))
+                .withRequestBody(WireMock.equalTo("SELECT birthday FROM PEOPLE WHERE name = ?"))
                     // Parameters are sent with index has headername and value as headervalue
                 .withHeader("1", WireMock.equalTo(NAME_ERICH_EICHINGER))
                     // return a recordset
@@ -98,7 +107,7 @@ public class UseWireMockToInterceptJdbcResultSetsTest {
 
         String dateTime = jdbcTemplate
             .queryForObject(
-                "SELECT birthday FROM DM.PEOPLE WHERE name = ?"
+                "SELECT birthday FROM PEOPLE WHERE name = ?"
                 , String.class
                 , NAME_ERICH_EICHINGER
             );
@@ -122,8 +131,7 @@ public class UseWireMockToInterceptJdbcResultSetsTest {
 
     @Test
     public void passthrough_nonmatching_queries_with_error() {
-        thrown.expect(HsqlException.class);
-        thrown.expectMessage("unexpected token: SYNTAX");
+        thrown.expect(BadSqlGrammarException.class);
 
         final String NAME = "Hugo Simon";
 

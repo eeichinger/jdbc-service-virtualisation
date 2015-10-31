@@ -36,10 +36,12 @@ import org.jdom.Element;
 import org.jdom.input.SAXBuilder;
 
 /**
+ * This is implemented as a {@link P6Factory}, the plan is to integrate it as a P6Module.
+ *
  * @author Erich Eichinger
  * @since 30/10/2015
  */
-public class MyP6MockFactory implements P6Factory {
+public class JdbcServiceVirtualizationFactory implements P6Factory {
 
     private String targetUrl;
 

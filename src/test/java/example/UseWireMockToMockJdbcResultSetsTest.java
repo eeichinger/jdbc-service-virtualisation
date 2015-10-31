@@ -10,7 +10,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.oaky.poc.servicevirtualisation.MyP6MockFactory;
+import org.oaky.poc.servicevirtualisation.JdbcServiceVirtualizationFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import static org.hamcrest.MatcherAssert.*;
@@ -36,7 +36,7 @@ public class UseWireMockToMockJdbcResultSetsTest {
 
     @Before
     public void before() {
-        MyP6MockFactory myP6MockFactory = new MyP6MockFactory();
+        JdbcServiceVirtualizationFactory myP6MockFactory = new JdbcServiceVirtualizationFactory();
         myP6MockFactory.setTargetUrl("http://localhost:" + wireMockRule.port() + "/sqlstub");
 
         DataSource dataSource = myP6MockFactory.createMockDataSource();
@@ -70,7 +70,7 @@ public class UseWireMockToMockJdbcResultSetsTest {
 
         String dateTime = jdbcTemplate
             .queryForObject(
-                "SELECT birthday FROM DM.PEOPLE WHERE name = ?"
+                "SELECT birthday FROM PEOPLE WHERE name = ?"
                 , String.class
                 , NAME_ERICH_EICHINGER
             );
