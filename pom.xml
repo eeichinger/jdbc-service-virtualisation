@@ -288,8 +288,11 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-gpg-plugin</artifactId>
-                <version>1.5</version>
+                <version>1.6</version>
                 <configuration>
+                    <!--<interactive>false</interactive>-->
+                    <!--<useAgent>false</useAgent>-->
+                    <passphrase>${env.GPG_PASSPHRASE}</passphrase>
                     <publicKeyring>${project.basedir}/local.pubring.gpg</publicKeyring>
                     <secretKeyring>${project.basedir}/local.secring.gpg</secretKeyring>
                 </configuration>
