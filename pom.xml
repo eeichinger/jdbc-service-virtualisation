@@ -117,7 +117,7 @@
                             <ci-build-tag>${ci-build-tag}</ci-build-tag>
                             <ci-build-url>${ci-build-url}</ci-build-url>
                             <ci-build-time>${ci-build-time}</ci-build-time>
-                            <ci-svn-revision>${ci-build-revision}</ci-svn-revision>
+                            <ci-build-revision>${ci-build-revision}</ci-build-revision>
                         </manifestEntries>
                     </archive>
                 </configuration>
@@ -136,7 +136,7 @@
                             <ci-build-tag>${ci-build-tag}</ci-build-tag>
                             <ci-build-url>${ci-build-url}</ci-build-url>
                             <ci-build-time>${ci-build-time}</ci-build-time>
-                            <ci-svn-revision>${ci-build-revision}</ci-svn-revision>
+                            <ci-build-revision>${ci-build-revision}</ci-build-revision>
                         </manifestEntries>
                     </archive>
                 </configuration>
