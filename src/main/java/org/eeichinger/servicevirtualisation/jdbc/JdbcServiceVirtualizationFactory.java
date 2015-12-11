@@ -1,6 +1,8 @@
 package org.eeichinger.servicevirtualisation.jdbc;
 
+import java.io.IOException;
 import java.io.StringReader;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -26,6 +28,7 @@ import com.p6spy.engine.proxy.ProxyFactory;
 import com.p6spy.engine.spy.P6Factory;
 import com.p6spy.engine.spy.P6LoadableOptions;
 import com.p6spy.engine.spy.option.P6OptionsRepository;
+import lombok.SneakyThrows;
 import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -73,6 +76,8 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
 
             @Override
             public MockConnection createMockConnection() {
+                // this is a hack, leveraging the fact that getSQLException() is the first
+                // method checked to determine the mock resultset behaviour.
                 return new MockConnection(
                     new StatementResultSetHandler() {
                         @Override
@@ -120,6 +125,48 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
         GenericInvocationHandler<Connection> invocationHandler = createConnectionInvocationHandler(conn);
         return ProxyFactory.createProxy(conn, invocationHandler);
     }
+
+    /**
+     * This is where the magic happens - decide whether to intercept or pass through
+     *
+     * @param preparedStatementInformation
+     * @param underlying
+     * @param method
+     * @param args
+     * @return the resultset (executeQuery) or int (executeUpdate)
+     */
+    @SneakyThrows
+    protected Object interceptPreparedStatementExecution(PreparedStatementInformation preparedStatementInformation, Object underlying, Method method, Object[] args) {
+        CloseableHttpClient httpclient = HttpClients.createDefault();
+
+        final String sql = preparedStatementInformation.getSql();
+        HttpPost httpPost = new HttpPost(targetUrl);
+        for (Map.Entry<Integer, Object> e : preparedStatementInformation.getParameterValues().entrySet()) {
+            httpPost.setHeader(e.getKey().toString(), Objects.toString(e.getValue()));
+        }
+        httpPost.setEntity(new StringEntity(sql, "utf-8"));
+
+        try (CloseableHttpResponse response = httpclient.execute(httpPost)) {
+            if (response.getStatusLine().getStatusCode() == 200) {
+                String responseContent = EntityUtils.toString(response.getEntity());
+                if (int.class.equals(method.getReturnType())) {
+                    return Integer.parseInt(responseContent);
+                }
+                return createSybaseResultSet(true, "x", responseContent);
+            }
+            if (response.getStatusLine().getStatusCode() == 400) {
+                final Header reasonHeader = response.getFirstHeader("reason");
+                if (reasonHeader == null) throw new AssertionError("missing 'reason' response header");
+                final String sqlState = response.getFirstHeader("sqlstate") != null ? response.getFirstHeader("sqlstate").getValue() : null;
+                final int vendorCode = response.getFirstHeader("vendorcode") != null ? Integer.parseInt(response.getFirstHeader("vendorcode").getValue()) : 0;
+                throw new SQLException(reasonHeader.getValue(), sqlState, vendorCode);
+            }
+        }
+
+        final Object result = method.invoke(underlying, args);
+        return result;
+    }
+
 
     static class PreparedStatementInformation {
         ConnectionInformation connectionInformation;
@@ -170,33 +217,7 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
     protected Delegate createPreparedStatementExecuteDelegate(final PreparedStatementInformation preparedStatementInformation) {
         return (final Object proxy, final Object underlying, final Method method, final Object[] args) -> {
 
-            CloseableHttpClient httpclient = HttpClients.createDefault();
-
-            final String sql = preparedStatementInformation.getSql();
-            HttpPost httpPost = new HttpPost(targetUrl);
-            for (Map.Entry<Integer, Object> e : preparedStatementInformation.getParameterValues().entrySet()) {
-                httpPost.setHeader(e.getKey().toString(), Objects.toString(e.getValue()));
-            }
-            httpPost.setEntity(new StringEntity(sql, "utf-8"));
-
-            try (CloseableHttpResponse response = httpclient.execute(httpPost)) {
-                if (response.getStatusLine().getStatusCode() == 200) {
-                    String responseContent = EntityUtils.toString(response.getEntity());
-                    if (int.class.equals(method.getReturnType())) {
-                        return Integer.parseInt(responseContent);
-                    }
-                    return createSybaseResultSet(true, "x", responseContent);
-                }
-                if (response.getStatusLine().getStatusCode() == 400) {
-                    final Header reasonHeader = response.getFirstHeader("reason");
-                    if (reasonHeader == null) throw new AssertionError("missing 'reason' response header");
-                    final String sqlState = response.getFirstHeader("sqlstate") != null ? response.getFirstHeader("sqlstate").getValue() : null;
-                    final int vendorCode = response.getFirstHeader("vendorcode") != null ? Integer.parseInt(response.getFirstHeader("vendorcode").getValue()) : 0;
-                    throw new SQLException(reasonHeader.getValue(), sqlState, vendorCode);
-                }
-            }
-
-            return method.invoke(underlying, args);
+            return interceptPreparedStatementExecution(preparedStatementInformation, underlying, method, args);
         };
     }
 
