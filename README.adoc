@@ -4,6 +4,19 @@
 
 toc::[]
 
+## Usage
+
+the library is available from Maven Central via
+
+[source,xml]
+----
+<dependency>
+    <groupId>com.github.eeichinger.service-virtualisation</groupId>
+    <artifactId>jdbc-service-virtualisation</artifactId>
+    <version>0.0.1.RELEASE</version>
+</dependency>
+----
+
 ## Overview
 
 Demonstrates you to use the technique to just spy on a real database and intercept/mock only selected jdbc queries.
