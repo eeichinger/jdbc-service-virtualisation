@@ -1,18 +1,14 @@
 package example;
 
-import java.sql.PreparedStatement;
-
-import javax.sql.DataSource;
-
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import lombok.SneakyThrows;
+import org.eeichinger.servicevirtualisation.jdbc.JdbcServiceVirtualizationFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.eeichinger.servicevirtualisation.jdbc.JdbcServiceVirtualizationFactory;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -20,8 +16,11 @@ import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseFactoryBean;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 
-import static org.hamcrest.MatcherAssert.*;
-import static org.hamcrest.Matchers.*;
+import javax.sql.DataSource;
+import java.sql.PreparedStatement;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 
 /**
  * Demonstrates you to use the technique to just spy on a real database and intercept/mock only selected jdbc queries.
@@ -46,13 +45,14 @@ public class UseWireMockToInterceptJdbcResultSetsTest {
     public EmbeddedDatabaseFactoryBean createHSQLDatabaseFactory() {
         final ResourceDatabasePopulator dbPopulator = new ResourceDatabasePopulator();
         dbPopulator.addScript(new ByteArrayResource(("" +
-            "CREATE TABLE PEOPLE (" +
-            "   name VARCHAR(200) NOT NULL" +
-            ",  birthday VARCHAR(200) NOT NULL" +
-            ");\n"
+                "CREATE TABLE PEOPLE (" +
+                "   name VARCHAR(200) NOT NULL" +
+                ",  birthday VARCHAR(200) NOT NULL" +
+                ",  placeofbirth VARCHAR(200) NOT NULL" +
+                ");\n"
         ).getBytes("utf-8")));
         dbPopulator.addScript(new ByteArrayResource(("" +
-            "INSERT INTO PEOPLE(name, birthday) VALUES('Hugo Simon', '2012-01-02');\n"
+                "INSERT INTO PEOPLE(name, birthday, placeofbirth) VALUES('Hugo Simon', '2012-01-02', 'Munich');\n"
         ).getBytes("utf-8")));
 
         EmbeddedDatabaseFactoryBean dbFactory = new EmbeddedDatabaseFactoryBean();
@@ -136,6 +136,54 @@ public class UseWireMockToInterceptJdbcResultSetsTest {
             );
 
         assertThat(dateTime, equalTo("1980-01-01"));
+    }
+
+    @Test
+    public void intercepts_matching_query_and_responds_with_multi_column_mockresultset() {
+        final String NAME_ERICH_EICHINGER = "Erich Eichinger";
+        final String PLACE_OF_BIRTH = "Vienna";
+
+        // setup mock resultsets
+        WireMock.stubFor(WireMock
+                .post(WireMock.urlPathEqualTo("/sqlstub"))
+                // SQL Statement is posted in the body, use any available matchers to match
+                .withRequestBody(WireMock.equalTo("SELECT birthday, placeofbirth FROM PEOPLE WHERE name = ?"))
+                // Parameters are sent with index has headername and value as headervalue
+                .withHeader("1", WireMock.equalTo(NAME_ERICH_EICHINGER))
+                // return a recordset
+                .willReturn(WireMock
+                        .aResponse()
+                        .withBody(""
+                                + "<resultset>"
+                                + "     <cols><col>birthday</col><col>placeofbirth</col></cols>"
+                                + "     <row>"
+                                + "         <birthday>1980-01-01</birthday>"
+                                + "         <placeofbirth>" + PLACE_OF_BIRTH + "</placeofbirth>"
+                                + "     </row>"
+                                + "</resultset>"
+                        )
+                )
+        )
+        ;
+
+        String birthday = jdbcTemplate.queryForObject(
+                "SELECT birthday, placeofbirth FROM PEOPLE WHERE name = ?"
+                , new Object[] { NAME_ERICH_EICHINGER }
+                , (rs, rowNum) -> {
+                    return rs.getString(1);
+                }
+        );
+
+        String placeOfBirth = jdbcTemplate.queryForObject(
+                "SELECT birthday, placeofbirth FROM PEOPLE WHERE name = ?"
+                , new Object[] { NAME_ERICH_EICHINGER }
+                , (rs, rowNum) -> {
+                    return rs.getString(2);
+                }
+        );
+
+        assertThat(birthday, equalTo("1980-01-01"));
+        assertThat(placeOfBirth, equalTo(PLACE_OF_BIRTH));
     }
 
     @Test
