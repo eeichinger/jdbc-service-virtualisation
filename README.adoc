@@ -48,37 +48,43 @@ public class UseWireMockToMockJdbcResultSetsTest {
     }
 
     @Test
-    public void intercepts_matching_query_and_responds_with_mockresultset() {
-        final String NAME = "Erich Eichinger";
+    public void intercepts_matching_query_and_responds_with_multi_column_mockresultset() {
+        final String NAME_ERICH_EICHINGER = "Erich Eichinger";
+        final String PLACE_OF_BIRTH = "Vienna";
 
         // setup mock resultsets
         WireMock.stubFor(WireMock
                 .post(WireMock.urlPathEqualTo("/sqlstub"))
-                    // SQL Statement is posted in the body, use any available matchers to match
-                .withRequestBody(WireMock.equalTo("SELECT birthday FROM PEOPLE WHERE name = ?"))
-                    // Parameters are sent with index has headername and value as headervalue
-                .withHeader("1", WireMock.equalTo(NAME))
-                    // return a recordset
+                // SQL Statement is posted in the body, use any available matchers to match
+                .withRequestBody(WireMock.equalTo("SELECT birthday, placeofbirth FROM PEOPLE WHERE name = ?"))
+                // Parameters are sent with index has headername and value as headervalue
+                .withHeader("1", WireMock.equalTo(NAME_ERICH_EICHINGER))
+                // return a recordset
                 .willReturn(WireMock
                         .aResponse()
                         .withBody(""
                                 + "<resultset>"
-                                + "     <cols><col>birthday</col></cols>"
-                                + "     <row><val>1980-01-01</val></row>"
+                                + "     <cols><col>birthday</col><col>placeofbirth</col></cols>"
+                                + "     <row>"
+                                + "         <birthday>1980-01-01</birthday>"
+                                + "         <placeofbirth>" + PLACE_OF_BIRTH + "</placeofbirth>"
+                                + "     </row>"
                                 + "</resultset>"
                         )
                 )
         )
         ;
 
-        String bday = jdbcTemplate
-            .queryForObject(
-                "SELECT birthday FROM PEOPLE WHERE name = ?"
-                , String.class
-                , NAME
-            );
+        String[] result = jdbcTemplate.queryForObject(
+                "SELECT birthday, placeofbirth FROM PEOPLE WHERE name = ?"
+                , new Object[] { NAME_ERICH_EICHINGER }
+                , (rs, rowNum) -> {
+                    return new String[] { rs.getString(1), rs.getString(2) };
+                }
+        );
 
-        assertThat(bday, equalTo("1980-01-01"));
+        assertThat(result[0], equalTo("1980-01-01"));
+        assertThat(result[1], equalTo(PLACE_OF_BIRTH));
     }
 }
 ----

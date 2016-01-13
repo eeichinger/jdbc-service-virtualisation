@@ -134,24 +134,16 @@ public class UseWireMockToMockJdbcResultSetsTest {
         )
         ;
 
-        String birthday = jdbcTemplate.queryForObject(
+        String[] result = jdbcTemplate.queryForObject(
                 "SELECT birthday, placeofbirth FROM PEOPLE WHERE name = ?"
                 , new Object[] { NAME_ERICH_EICHINGER }
                 , (rs, rowNum) -> {
-                    return rs.getString(1);
+                    return new String[] { rs.getString(1), rs.getString(2) };
                 }
         );
 
-        String placeOfBirth = jdbcTemplate.queryForObject(
-                "SELECT birthday, placeofbirth FROM PEOPLE WHERE name = ?"
-                , new Object[] { NAME_ERICH_EICHINGER }
-                , (rs, rowNum) -> {
-                    return rs.getString(2);
-                }
-        );
-
-        assertThat(birthday, equalTo("1980-01-01"));
-        assertThat(placeOfBirth, equalTo(PLACE_OF_BIRTH));
+        assertThat(result[0], equalTo("1980-01-01"));
+        assertThat(result[1], equalTo(PLACE_OF_BIRTH));
     }
 
     @Test
