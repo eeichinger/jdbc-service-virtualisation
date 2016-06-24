@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-set -v > /dev/null
 
 env | grep "TRAVIS_"
+
+# set -v > /dev/null
 
 echo "TRAVIS_TAG: $TRAVIS_TAG"
 
