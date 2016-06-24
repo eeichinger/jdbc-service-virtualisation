@@ -79,6 +79,7 @@
                         <artifactId>maven-gpg-plugin</artifactId>
                         <version>1.6</version>
                         <configuration>
+                            <useAgent>false</useAgent>
                             <passphrase>${gpg.passphrase}</passphrase>
                             <publicKeyring>${project.basedir}/gpg.pubring.gpg</publicKeyring>
                             <secretKeyring>${project.basedir}/gpg.secring.gpg</secretKeyring>
@@ -300,7 +301,7 @@
                 <executions>
                     <execution>
                         <id>enforce-all</id>
-                        <phase>prepare-package</phase>
+                        <phase>process-test-classes</phase>
                         <goals>
                             <goal>enforce</goal>
                         </goals>
