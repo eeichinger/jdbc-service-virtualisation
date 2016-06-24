@@ -24,7 +24,4 @@ before_install:
 install: true
 
 script:
-  - mvn install -B
-
-after_success:
-  - ./deploy.sh
+  - ./build.sh
