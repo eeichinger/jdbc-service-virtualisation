@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -v
+set -v > /dev/null
 
 echo "TRAVIS_TAG: $TRAVIS_TAG"
 
