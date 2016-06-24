@@ -1,17 +1,5 @@
 package org.eeichinger.servicevirtualisation.jdbc;
 
-import java.io.IOException;
-import java.io.StringReader;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.*;
-
-import javax.sql.DataSource;
-
 import com.mockrunner.base.NestedApplicationException;
 import com.mockrunner.jdbc.CallableStatementResultSetHandler;
 import com.mockrunner.jdbc.PreparedStatementResultSetHandler;
@@ -39,6 +27,15 @@ import org.apache.http.util.EntityUtils;
 import org.jdom.Document;
 import org.jdom.Element;
 import org.jdom.input.SAXBuilder;
+
+import javax.sql.DataSource;
+import java.io.StringReader;
+import java.lang.reflect.Method;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.*;
 
 /**
  * This is implemented as a {@link P6Factory}, the plan is to integrate it as a P6Module.
@@ -149,6 +146,9 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
         try (CloseableHttpResponse response = httpclient.execute(httpPost)) {
             if (response.getStatusLine().getStatusCode() == 200) {
                 String responseContent = EntityUtils.toString(response.getEntity());
+                if(int[].class.equals(method.getReturnType())) {
+                    return createBatchUpdateResultSet(responseContent);
+                }
                 if (int.class.equals(method.getReturnType())) {
                     return Integer.parseInt(responseContent);
                 }
@@ -322,6 +322,26 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
 
     protected P6MockPreparedStatementInvocationHandler createPreparedStatementInvocationHandler(ConnectionInformation connectionInformation, PreparedStatement statement, String query) {
         return new P6MockPreparedStatementInvocationHandler(statement, connectionInformation, query);
+    }
+
+    /**
+     * Returns an integer array with all number of affected rows for one batch.
+     * List should be comma-seperated, e.g. "-2,-2,-2".
+     *
+     * @return array with corresponding number of updated rows for each batch
+     */
+    public int[] createBatchUpdateResultSet(String responseContent) {
+        String[] numberOfAffectedRowsArray = responseContent.split(",");
+        int[] result = new int[0];
+
+        if(numberOfAffectedRowsArray != null && numberOfAffectedRowsArray.length > 0) {
+            result = new int[numberOfAffectedRowsArray.length];
+            for(int i=0; i<numberOfAffectedRowsArray.length; i++) {
+                result[i] = Integer.parseInt(numberOfAffectedRowsArray[i]);
+            }
+        }
+
+        return result;
     }
 
     /**
