@@ -141,5 +141,3 @@ include::src/test/java/example/UseWireMockToInterceptJdbcResultSetsTest.java[]
 ## Example "Mock Mode":
 
 include::src/test/java/example/UseWireMockToMockJdbcResultSetsTest.java[]
-
-Nightly builds are provided by https://nightli.es/

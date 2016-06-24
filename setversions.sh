@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -v
 
 echo "TRAVIS_TAG: $TRAVIS_TAG"
