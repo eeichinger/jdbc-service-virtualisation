@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -v > /dev/null
 
+env | grep "TRAVIS_"
+
 echo "TRAVIS_TAG: $TRAVIS_TAG"
 
 if [[ "$TRAVIS_TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.RELEASE$ ]]; then
