@@ -2,4 +2,6 @@ target
 *.iml
 *.log
 *.png
+*.gpg
+*.asc
 local.*
