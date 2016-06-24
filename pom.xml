@@ -81,8 +81,8 @@
                         <configuration>
                             <useAgent>false</useAgent>
                             <passphrase>${gpg.passphrase}</passphrase>
-                            <publicKeyring>${project.basedir}/gpg.pubring.gpg</publicKeyring>
-                            <secretKeyring>${project.basedir}/gpg.secring.gpg</secretKeyring>
+                            <publicKeyring>${project.basedir}/local.gpg.pubring.gpg</publicKeyring>
+                            <secretKeyring>${project.basedir}/local.gpg.secring.gpg</secretKeyring>
                         </configuration>
                         <executions>
                             <execution>
