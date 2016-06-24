@@ -5,3 +5,4 @@ target
 *.gpg
 *.asc
 local.*
+*.tar
