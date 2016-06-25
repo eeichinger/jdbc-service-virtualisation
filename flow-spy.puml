@@ -1,6 +1,6 @@
 @startuml
 
-title Intercept/Mock Flow Overview
+title Spy Flow Overview
 
 hide footbox
 
@@ -25,7 +25,7 @@ alt NO STUB -> continue
 
 else FOUND STUB
 
-  vdatasource \- wiremock: <recordset>
+  vdatasource \- wiremock: <mock recordset>
 
 end
 

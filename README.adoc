@@ -4,29 +4,16 @@
 
 toc::[]
 
-## Usage
+## What does it do?
 
-the library is available from Maven Central via
-
-[source,xml]
-----
-<dependency>
-    <groupId>com.github.eeichinger.service-virtualisation</groupId>
-    <artifactId>jdbc-service-virtualisation</artifactId>
-    <version>0.0.1.RELEASE</version>
-</dependency>
-----
-
-## Overview
-
-Demonstrates you to use the technique to just spy on a real database and intercept/mock only selected jdbc queries.
+This library provides JDBC DataSource wrapper (similar to https://github.com/p6spy/p6spy[P6Spy]) in order to spy on or mock database operations. It redirects JDBC operations to an HTTP server, so you can use http://wiremock.org/[WireMock] or similar HTTP Mock Servers to define the actual Mock behaviour. The major advantage of this approach is that we can reuse existing technologies to remotely stub a JDBC endpoint.
 
 Under the hood it uses https://github.com/p6spy/p6spy[P6Spy] and http://mockrunner.sourceforge.net/examplesjdbc.html[MockRunner-JDBC] to spy on the JDBC connection and hooks into http://docs.oracle.com/javase/8/docs/api/java/sql/PreparedStatement.html#executeQuery--[PreparedStatement#executeQuery()]
-and http://docs.oracle.com/javase/8/docs/api/java/sql/PreparedStatement.html#executeUpdate--[PreparedStatement#executeUpdate()] to redirect the call to an HTTP Server, e.g. http://wiremock.org/[WireMock] or similar HTTP Mock Servers. The major advantage of this approach is that we can reuse existing technologies to remotely stub a JDBC endpoint!
+and http://docs.oracle.com/javase/8/docs/api/java/sql/PreparedStatement.html#executeUpdate--[PreparedStatement#executeUpdate()] to redirect the call to an HTTP Server as shown below:
 
-image:overview.png[]
+image:flow-spy.png[]
 
-The following example using Spring's JdbcTemplate to avoid boilerplate JDBC
+The following example using Spring's JdbcTemplate to avoid boilerplate JDBC and demonstrates how to use the technique to just spy on a real database and intercept/mock only selected jdbc queries.
 
 [source,java]
 ----
@@ -89,15 +76,17 @@ public class UseWireMockToMockJdbcResultSetsTest {
 }
 ----
 
-## Modes
+## Operation Modes
 
-There are 2 modes, Spy Mode and Mock Mode
+JdbcServiceVirtualizationFactory supports two modes, *Spy Mode* and *Mock Mode*
 
 ### Spy Mode
 
 In Spy Mode, the service virtualizer spies on a real datasource. In this case, only configured statements will be handled by WireMock, all other statements are routed through to the actual database.
 
 Spy Mode is configured by wrapping the original DataSource using spyOnDataSource():
+
+image:flow-spy.png[]
 
 [source,java]
 ----
@@ -115,9 +104,21 @@ public void before() {
 }
 ----
 
+*Full Example*
+
+[source,java]
+----
+include::src/test/java/example/UseWireMockToInterceptJdbcResultSetsTest.java[]
+----
+
+
 ### Mock Mode
 
 In Mock Mode you don't need a real database. Any statement must be configured in WireMock. If WireMock returns 404 (i.e. no match was found), an {@link AssertionError} is thrown.
+
+image:flow-mock.png[]
+
+Mock Mode is configured by creating the datasource using createMockDataSource():
 
 [source,java]
 ----
@@ -133,11 +134,44 @@ public void before() {
 }
 ----
 
+*Full Example*
 
-## Example "Spy Mode":
-
-include::src/test/java/example/UseWireMockToInterceptJdbcResultSetsTest.java[]
-
-## Example "Mock Mode":
-
+[source,java]
+----
 include::src/test/java/example/UseWireMockToMockJdbcResultSetsTest.java[]
+----
+
+
+## Getting the Binaries
+
+the library is available from Maven Central via
+
+[source,xml]
+----
+<dependency>
+    <groupId>com.github.eeichinger.service-virtualisation</groupId>
+    <artifactId>jdbc-service-virtualisation</artifactId>
+    <version>0.0.2.RELEASE</version>
+</dependency>
+----
+
+or download from http://search.maven.org/#search%7Cga%7C1%7Cjdbc-service-virtualisation
+
+## Contributing
+
+For bugs, feature requests or questions and discussions please use GitHub issues on https://github.com/eeichinger/jdbc-service-virtualisation/issues.
+
+### Building
+
+To build the project simply run
+
+    mvn clean install
+
+### CI
+
+Travis is used to build and release this project https://travis-ci.org/eeichinger/jdbc-service-virtualisation
+
+### Nightly Builds
+
+nightly builds are triggered via https://nightli.es/
+

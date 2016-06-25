@@ -1,0 +1,33 @@
+@startuml
+
+title Mock Flow Overview
+
+hide footbox
+
+participant client as "Client"
+participant vdatasource as "DataSource Wrapper"
+participant wiremock as "WireMock"
+
+client -\ vdatasource: executeQuery("select * from mytable")
+
+vdatasource -\ wiremock: POST /sqlstub \n\
+{\n\
+ sql: "select * from mytable" \n\
+ , parameters[]\n\
+ }
+
+wiremock -> wiremock: lookup match
+
+alt  NO STUB -> throw AssertionError()
+  vdatasource \- wiremock: 404
+  client \- vdatasource: throw AssertionError()
+
+else FOUND STUB
+
+  vdatasource \- wiremock: <mock recordset>
+  client \- vdatasource: ResultSet
+
+end
+
+
+@enduml
