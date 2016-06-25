@@ -1,0 +1,10 @@
+
+Adapted from https://uima.apache.org/checklist-release.html
+
+- Update Release Notes
+
+Check the list of issues that have been closed since the last release.
+
+
+- Update Version number in binaries usage section of README.adoc
+
