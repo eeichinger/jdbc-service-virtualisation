@@ -18,7 +18,7 @@ public class MockResultSetHelper {
 
     /**
      * Parse a MockResultSet from the provided Sybase-style formatted XML Document.
-     * <p/>
+     * <p>
      * Example XML:
      * <pre>{@code
      * <resultset>
