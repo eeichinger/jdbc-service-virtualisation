@@ -1,12 +1,10 @@
 package org.eeichinger.servicevirtualisation.jdbc;
 
-import com.mockrunner.base.NestedApplicationException;
 import com.mockrunner.jdbc.CallableStatementResultSetHandler;
 import com.mockrunner.jdbc.PreparedStatementResultSetHandler;
 import com.mockrunner.jdbc.StatementResultSetHandler;
 import com.mockrunner.mock.jdbc.JDBCMockObjectFactory;
 import com.mockrunner.mock.jdbc.MockConnection;
-import com.mockrunner.mock.jdbc.MockResultSet;
 import com.p6spy.engine.common.ConnectionInformation;
 import com.p6spy.engine.logging.P6LogOptions;
 import com.p6spy.engine.proxy.Delegate;
@@ -24,18 +22,16 @@ import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
-import org.jdom.Document;
-import org.jdom.Element;
-import org.jdom.input.SAXBuilder;
 
 import javax.sql.DataSource;
-import java.io.StringReader;
+
 import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.*;
+import java.util.stream.Stream;
 
 /**
  * This is implemented as a {@link P6Factory}, the plan is to integrate it as a P6Module.
@@ -152,7 +148,7 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
                 if (int.class.equals(method.getReturnType())) {
                     return Integer.parseInt(responseContent);
                 }
-                return createSybaseResultSet(true, "x", responseContent);
+                return MockResultSetHelper.parseResultSetFromSybaseXmlString(true, "x", responseContent);
             }
             if (response.getStatusLine().getStatusCode() == 400) {
                 final Header reasonHeader = response.getFirstHeader("reason");
@@ -221,7 +217,7 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
         };
     }
 
-    public class P6MockDataSourceInvocationHandler extends GenericInvocationHandler<DataSource> {
+    protected class P6MockDataSourceInvocationHandler extends GenericInvocationHandler<DataSource> {
 
         public P6MockDataSourceInvocationHandler(DataSource underlying) {
             super(underlying);
@@ -236,7 +232,7 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
         }
     }
 
-    public class P6MockConnectionInvocationHandler extends GenericInvocationHandler<Connection> {
+    protected class P6MockConnectionInvocationHandler extends GenericInvocationHandler<Connection> {
 
         public P6MockConnectionInvocationHandler(Connection underlying) {
             super(underlying);
@@ -252,7 +248,7 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
         }
     }
 
-    public class P6MockPreparedStatementInvocationHandler extends GenericInvocationHandler<PreparedStatement> {
+    protected class P6MockPreparedStatementInvocationHandler extends GenericInvocationHandler<PreparedStatement> {
 
         class P6MockPreparedStatementSetParameterValueDelegate implements Delegate {
             protected final PreparedStatementInformation preparedStatementInformation;
@@ -326,73 +322,12 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
 
     /**
      * Returns an integer array with all number of affected rows for one batch.
-     * List should be comma-seperated, e.g. "-2,-2,-2".
+     * List must be comma-seperated, e.g. "-2,-2,-2".
      *
      * @return array with corresponding number of updated rows for each batch
      */
-    public int[] parseBatchUpdateRowsAffected(String responseContent) {
-        String[] numberOfAffectedRowsArray = responseContent.split(",");
-        int[] result = new int[0];
-
-        if(numberOfAffectedRowsArray != null && numberOfAffectedRowsArray.length > 0) {
-            result = new int[numberOfAffectedRowsArray.length];
-            for(int i=0; i<numberOfAffectedRowsArray.length; i++) {
-                result[i] = Integer.parseInt(numberOfAffectedRowsArray[i]);
-            }
-        }
-
-        return result;
-    }
-
-    /**
-     * Return a MockResultSet with proper column names and
-     * rows based on the XML <code>Document</code>.
-     *
-     * @return MockResultSet Results read from XML
-     * <code>Document</code>.
-     */
-    @SuppressWarnings("rawtypes")
-    public MockResultSet createSybaseResultSet(boolean trim, String id, String xml) {
-        MockResultSet resultSet = new MockResultSet(id);
-        SAXBuilder builder = new SAXBuilder();
-        Document doc;
-
-        try {
-            doc = builder.build(new StringReader(xml));
-            Element root = doc.getRootElement();
-            List rows = root.getChildren("row");
-            Iterator ri = rows.iterator();
-            boolean firstIteration = true;
-            int colNum = 0;
-            while (ri.hasNext()) {
-                Element cRow = (Element) ri.next();
-                List cRowChildren = cRow.getChildren();
-                Iterator cri = cRowChildren.iterator();
-                if (firstIteration) {
-                    List columns = cRowChildren;
-                    Iterator ci = columns.iterator();
-
-                    while (ci.hasNext()) {
-                        Element ccRow = (Element) ci.next();
-                        resultSet.addColumn(ccRow.getName());
-                        colNum++;
-                    }
-                    firstIteration = false;
-                }
-                String[] cRowValues = new String[colNum];
-                int curCol = 0;
-                while (cri.hasNext()) {
-                    Element crValue = (Element) cri.next();
-                    String value = trim ? crValue.getTextTrim() : crValue.getText();
-                    cRowValues[curCol] = value;
-                    curCol++;
-                }
-                resultSet.addRow(cRowValues);
-            }
-        } catch (Exception exc) {
-            throw new NestedApplicationException("Failure while reading from XML file", exc);
-        }
-        return resultSet;
+    private static int[] parseBatchUpdateRowsAffected(String responseContent) {
+        return Stream.of(responseContent.split(",")).mapToInt(s->Integer.parseInt(s)).toArray();
     }
 
 }

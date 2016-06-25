@@ -6,7 +6,7 @@
 
     <groupId>com.github.eeichinger.service-virtualisation</groupId>
     <artifactId>jdbc-service-virtualisation</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>1.0.1-SNAPSHOT</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>A library to support JDBC spying and mocking via HTTP using a potentially remote WireMock or similar.</description>
@@ -50,7 +50,7 @@
         <maven.build.timestamp.format>yyyy-MM-dd'T'HH:mm:ss'Z'</maven.build.timestamp.format>
         <project.build.sourceEncoding>${file.encoding}</project.build.sourceEncoding>
         <project.reporting.outputEncoding>${file.encoding}</project.reporting.outputEncoding>
-        <!-- JENKINS vars for embedding into manifest - taken from https://wiki.jenkins-ci.org/display/JENKINS/Building+a+software+project#Buildingasoftwareproject-JenkinsSetEnvironmentVariables -->
+        <!-- TRAVIS vars for embedding into manifest -->
         <ci-build-id>${env.TRAVIS_BUILD_ID}</ci-build-id>
         <ci-build-tag>${env.TRAVIS_TAG}</ci-build-tag>
         <ci-build-url>${env.TRAVIS_REPO_SLUG}</ci-build-url>
