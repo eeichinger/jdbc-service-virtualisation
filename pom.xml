@@ -87,7 +87,7 @@
                         <executions>
                             <execution>
                                 <id>sign-artifacts</id>
-                                <phase>verify</phase>
+                                <phase>post-integration-test</phase>
                                 <goals>
                                     <goal>sign</goal>
                                 </goals>
@@ -314,6 +314,83 @@
                         <version>1.0-beta-3</version>
                     </dependency>
                 </dependencies>
+            </plugin>
+            <!-- purge locally installed versions and force resolution of previous versions from nexus to ensure we validate API diffs against officially released versions -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>2.10</version>
+                <executions>
+                    <execution>
+                        <id>purge-local-repository</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>purge-local-repository</goal>
+                        </goals>
+                        <configuration>
+                            <actTransitively>false</actTransitively>
+                            <manualIncludes>
+                                <manualInclude>${project.groupId}:${project.artifactId}</manualInclude>
+                            </manualIncludes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <!-- generate a report about changes to the public API -->
+                <groupId>com.github.siom79.japicmp</groupId>
+                <artifactId>japicmp-maven-plugin</artifactId>
+                <version>0.8.0</version>
+                <configuration>
+                    <oldVersion>
+                        <!-- always compare against latest release version in Nexus -->
+                        <dependency>
+                            <groupId>${project.groupId}</groupId>
+                            <artifactId>${project.artifactId}</artifactId>
+                            <version>RELEASE</version>
+                            <type>jar</type>
+                        </dependency>
+                    </oldVersion>
+                    <newVersion>
+                        <file>
+                            <path>${project.build.directory}/${project.artifactId}-${project.version}.jar</path>
+                        </file>
+                    </newVersion>
+                    <!-- explicitly include optional dependencies, otherwise japicmp won't find them on the classpath -->
+                    <dependencies>
+                        <dependency>
+                            <groupId>org.springframework</groupId>
+                            <artifactId>spring-test</artifactId>
+                            <version>${spring.version}</version>
+                            <scope>test</scope>
+                        </dependency>
+                    </dependencies>
+                    <parameter>
+                        <!-- see documentation http://siom79.github.io/japicmp/MavenPlugin.html -->
+                        <!-- include own packages only -->
+                        <includes>
+                            <include>org.eeichinger</include>
+                        </includes>
+                        <!-- report only diff to latest release -->
+                        <onlyModified>true</onlyModified>
+                        <!-- we MUST increase minor or major version number if you want to release a breaking change - see http://semver.org/ -->
+                        <breakBuildBasedOnSemanticVersioning>true</breakBuildBasedOnSemanticVersioning>
+                        <!-- report breaking changes (e.g. removals) as well as additions and compatible changes on the public API -->
+                        <onlyBinaryIncompatible>false</onlyBinaryIncompatible>
+                        <!-- generate html report -->
+                        <skipXmlReport>true</skipXmlReport>
+                        <skipHtmlReport>false</skipHtmlReport>
+                        <skipDiffReport>true</skipDiffReport>
+                    </parameter>
+                </configuration>
+                <executions>
+                    <execution>
+                        <phase>post-integration-test</phase>
+                        <goals>
+                            <goal>cmp</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
