@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-env | grep "TRAVIS_"
+# we only want to build either master or release tags
 
 IS_RELEASE=true
 IS_MASTER=true
@@ -21,14 +21,14 @@ echo IS_RELEASE_BUILD=$IS_RELEASE_BUILD
 [ "$IS_PR" = 'false' ] || IS_RELEASE_BUILD=false
 
 if [[ "$IS_RELEASE_BUILD" = 'true' ]]; then
-    echo release build
+    echo ===> Peforming release build
 
     openssl aes-256-cbc -K $encrypted_11690a8d58e8_key -iv $encrypted_11690a8d58e8_iv -in gpg.secrets.tar.enc -out gpg.secrets.tar -d
     tar xvf gpg.secrets.tar
 
     mvn deploy -DskipTests -B -Psign --settings settings.xml
 else
-    echo default build
+    echo ===> Performing default build
 
     mvn install -B
 fi
