@@ -147,7 +147,7 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
             if (response.getStatusLine().getStatusCode() == 200) {
                 String responseContent = EntityUtils.toString(response.getEntity());
                 if(int[].class.equals(method.getReturnType())) {
-                    return createBatchUpdateResultSet(responseContent);
+                    return parseBatchUpdateRowsAffected(responseContent);
                 }
                 if (int.class.equals(method.getReturnType())) {
                     return Integer.parseInt(responseContent);
@@ -330,7 +330,7 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
      *
      * @return array with corresponding number of updated rows for each batch
      */
-    public int[] createBatchUpdateResultSet(String responseContent) {
+    public int[] parseBatchUpdateRowsAffected(String responseContent) {
         String[] numberOfAffectedRowsArray = responseContent.split(",");
         int[] result = new int[0];
 

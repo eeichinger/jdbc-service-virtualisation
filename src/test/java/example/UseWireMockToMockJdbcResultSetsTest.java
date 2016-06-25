@@ -151,21 +151,39 @@ public class UseWireMockToMockJdbcResultSetsTest {
 
     @Test
     public void intercepts_matching_batch_update_and_responds_with_int_array() {
-        // setup mock resultsets
+        // setup mock for batch 1 - always the last parameters of each batch will be sent
         WireMock.stubFor(WireMock
                 .post(WireMock.urlPathEqualTo("/sqlstub"))
-                // SQL Statement is posted in the body, use any available matchers to match
-                .withRequestBody(WireMock.equalTo("INSERT INTO PEOPLE (name, birthdate, placeOfBirth) " +
-                        "VALUES (?, ?, ?)"))
-                // Parameters are sent with index has headername and value as headervalue
-                .withHeader("1", WireMock.matching(".+"))
+                    // SQL Statement is posted in the body, use any available matchers to match
+                .withRequestBody(WireMock.equalTo("INSERT INTO PEOPLE (name, birthday, placeofbirth) " +
+                    "VALUES (?, ?, ?)"))
+                    // Parameters are sent with index has headername and value as headervalue
+                .withHeader("1", WireMock.matching("Matthias Bernloehr")) // last arg of batch 1
                 .withHeader("2", WireMock.matching(".+"))
                 .withHeader("3", WireMock.matching(".+"))
-                // return a recordset
+                    // return a recordset
                 .willReturn(WireMock
                         .aResponse()
                         .withBody(""
-                                + "-2,-2"
+                                + "0,1"
+                        )
+                )
+        );
+        // setup mock for batch 2 - always the last parameters of each batch will be sent
+        WireMock.stubFor(WireMock
+                .post(WireMock.urlPathEqualTo("/sqlstub"))
+                    // SQL Statement is posted in the body, use any available matchers to match
+                .withRequestBody(WireMock.equalTo("INSERT INTO PEOPLE (name, birthday, placeofbirth) " +
+                    "VALUES (?, ?, ?)"))
+                    // Parameters are sent with index has headername and value as headervalue
+                .withHeader("1", WireMock.matching("Volker Waltner")) // last arg of batch 2
+                .withHeader("2", WireMock.matching(".+"))
+                .withHeader("3", WireMock.matching(".+"))
+                    // return a recordset
+                .willReturn(WireMock
+                        .aResponse()
+                        .withBody(""
+                                + "-1,-2"
                         )
                 )
         );
@@ -177,7 +195,7 @@ public class UseWireMockToMockJdbcResultSetsTest {
             add(new Person("Volker Waltner", "1980-01-01", "Germany"));
         }};
 
-        int[][] result = jdbcTemplate.batchUpdate("INSERT INTO PEOPLE (name, birthdate, placeOfBirth) " +
+        int[][] result = jdbcTemplate.batchUpdate("INSERT INTO PEOPLE (name, birthday, placeofbirth) " +
                 "VALUES (?, ?, ?)", persons, 2, (ps, argument) -> {
             ps.setString(1, argument.getName());
             ps.setString(2, argument.getBirthdate());
@@ -185,9 +203,9 @@ public class UseWireMockToMockJdbcResultSetsTest {
         });
 
         assertThat(result.length, equalTo(2));
-        assertThat(result[0][0], equalTo(-2));
-        assertThat(result[0][1], equalTo(-2));
-        assertThat(result[1][0], equalTo(-2));
+        assertThat(result[0][0], equalTo(0));
+        assertThat(result[0][1], equalTo(1));
+        assertThat(result[1][0], equalTo(-1));
         assertThat(result[1][1], equalTo(-2));
     }
 

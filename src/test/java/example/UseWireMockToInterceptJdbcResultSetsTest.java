@@ -3,6 +3,7 @@ package example;
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import lombok.SneakyThrows;
+import lombok.Value;
 import org.eeichinger.servicevirtualisation.jdbc.JdbcServiceVirtualizationFactory;
 import org.junit.After;
 import org.junit.Before;
@@ -18,6 +19,8 @@ import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 
 import javax.sql.DataSource;
 import java.sql.PreparedStatement;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -187,6 +190,66 @@ public class UseWireMockToInterceptJdbcResultSetsTest {
     }
 
     @Test
+    public void intercepts_matching_batch_update_and_responds_with_int_array() {
+        // setup mock for batch 1 - always the last parameters of each batch will be sent
+        WireMock.stubFor(WireMock
+                .post(WireMock.urlPathEqualTo("/sqlstub"))
+                    // SQL Statement is posted in the body, use any available matchers to match
+                .withRequestBody(WireMock.equalTo("INSERT INTO PEOPLE (name, birthday, placeofbirth) " +
+                    "VALUES (?, ?, ?)"))
+                    // Parameters are sent with index has headername and value as headervalue
+                .withHeader("1", WireMock.matching("Matthias Bernloehr")) // last arg of batch 1
+                .withHeader("2", WireMock.matching(".+"))
+                .withHeader("3", WireMock.matching(".+"))
+                    // return a recordset
+                .willReturn(WireMock
+                        .aResponse()
+                        .withBody(""
+                                + "0,1"
+                        )
+                )
+        );
+        // setup mock for batch 2 - always the last parameters of each batch will be sent
+        WireMock.stubFor(WireMock
+                .post(WireMock.urlPathEqualTo("/sqlstub"))
+                    // SQL Statement is posted in the body, use any available matchers to match
+                .withRequestBody(WireMock.equalTo("INSERT INTO PEOPLE (name, birthday, placeofbirth) " +
+                    "VALUES (?, ?, ?)"))
+                    // Parameters are sent with index has headername and value as headervalue
+                .withHeader("1", WireMock.matching("Volker Waltner")) // last arg of batch 2
+                .withHeader("2", WireMock.matching(".+"))
+                .withHeader("3", WireMock.matching(".+"))
+                    // return a recordset
+                .willReturn(WireMock
+                        .aResponse()
+                        .withBody(""
+                                + "-1,-2"
+                        )
+                )
+        );
+
+        List<Person> persons = new ArrayList<Person>() {{
+            add(new Person("Erich Erichinger", "1980-01-01", "Vienna"));
+            add(new Person("Matthias Bernloehr", "1990-01-01", "Germany"));
+            add(new Person("Steffen Wegner", "1990-01-01", "Germany"));
+            add(new Person("Volker Waltner", "1980-01-01", "Germany"));
+        }};
+
+        int[][] result = jdbcTemplate.batchUpdate("INSERT INTO PEOPLE (name, birthday, placeofbirth) " +
+            "VALUES (?, ?, ?)", persons, 2, (ps, argument) -> {
+            ps.setString(1, argument.getName());
+            ps.setString(2, argument.getBirthdate());
+            ps.setString(3, argument.getPlaceOfBirth());
+        });
+
+        assertThat(result.length, equalTo(2));
+        assertThat(result[0][0], equalTo(0));
+        assertThat(result[0][1], equalTo(1));
+        assertThat(result[1][0], equalTo(-1));
+        assertThat(result[1][1], equalTo(-2));
+    }
+
+    @Test
     public void passthrough_nonmatching_queries() {
         final String NAME = "Hugo Simon";
 
@@ -212,5 +275,12 @@ public class UseWireMockToInterceptJdbcResultSetsTest {
                 , String.class
                 , NAME
             );
+    }
+
+    @Value
+    private static class Person {
+        String name;
+        String birthdate;
+        String placeOfBirth;
     }
 }
