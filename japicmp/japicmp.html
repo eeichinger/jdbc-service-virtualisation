@@ -1,0 +1,457 @@
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<title>JApiCmp-Report</title>
+<style type="text/css">
+body {
+    font-family: Verdana;
+}
+.title {
+    font-weight: bold;
+}
+.new {
+    color: green;
+}
+.removed {
+    color: red;
+}
+.modified {
+    color: orange;
+}
+.unchanged {
+    color: black;
+}
+thead tr td {
+    font-weight: bold;
+}
+.toc {
+    margin-top: 1em;
+    margin-bottom: 1em;
+    border: 1px solid #dcdcdc;
+    padding: 5px;
+    background: #ededed;
+    display: inline-block;
+}
+table {
+    border-collapse: collapse;
+}
+table tr td {
+    border: 1px solid black;
+    padding: 5px;
+}
+table thead {
+    background-color: #dee3e9;
+}
+table tbody tr td.matrix_layout {
+    background-color: #dee3e9;
+    font-weight: bold;
+}
+.class {
+    margin-bottom: 2em;
+    border: 1px solid #dcdcdc;
+    padding: 5px;
+    background: #ededed;
+    display: inline-block;
+}
+.class_compatibilityChanges {
+	margin-top: 1em;
+}
+.class_superclass {
+    margin-top: 1em;
+}
+.class_interfaces {
+    margin-top: 1em;
+}
+.class_fields {
+    margin-top: 1em;
+}
+.class_serialVersionUid {
+    margin-top: 1em;
+}
+.class_constructors {
+    margin-top: 1em;
+}
+.class_methods {
+    margin-top: 1em;
+}
+.class_annotations {
+    margin-top: 1em;
+}
+.label {
+    font-weight: bold;
+}
+.label_class_member {
+    background-color: #4d7a97;
+    display: inline-block;
+    padding: 5px;
+}
+.toc_link {
+    margin-left: 10px;
+    font-size: 0.5em;
+}
+.modifier {
+    font-style: italic;
+}
+.method_return_type {
+
+}
+ul {
+    list-style-type: none;
+    padding: 0px 0px;
+}
+.meta-information {
+    margin-top: 1em;
+    margin-bottom: 1em;
+    background: #ededed;
+    display: inline-block;
+}
+.warnings {
+    margin-top: 1em;
+    font-size: 0.75em;
+}
+.explanations {
+	margin-bottom: 2em;
+}
+
+</style>
+</head>
+<body>
+<span class="title">JApiCmp-Report</span>
+<br>
+<div class="meta-information">
+<table>
+<tr>
+<td>Old:</td><td>/Users/admin/.m2/repository/com/github/eeichinger/service-virtualisation/jdbc-service-virtualisation/0.0.2.RELEASE/jdbc-service-virtualisation-0.0.2.RELEASE.jar</td>
+</tr>
+<tr>
+<td>New:</td><td>/Users/admin/workspaces/com.github.eeichinger/jdbc-service-virtualisation/target/jdbc-service-virtualisation-1.0.1-SNAPSHOT.jar</td>
+</tr>
+<tr>
+<td>Created:</td><td>2016-06-25T14:05:55.931+0100</td>
+</tr>
+<tr>
+<td>Access modifier filter:</td><td>PROTECTED</td>
+</tr>
+<tr>
+<td>Only modifications:</td><td>true</td>
+</tr>
+<tr>
+<td>Only binary incompatible modifications:</td><td>false</td>
+</tr>
+<tr>
+<td>Ignore missing classes:</td><td>false</td>
+</tr>
+<tr>
+<td>Includes:</td><td>org.eeichinger;org.eeichinger</td>
+</tr>
+<tr>
+<td>Excludes:</td><td>n.a.</td>
+</tr>
+<tr>
+<td>Semantic Versioning:</td><td>1.0.0</td>
+</tr>
+</table>
+</div>
+<ul>
+<li>
+<a href="#toc">Classes</a>
+</li>
+</ul>
+    
+<div class="toc">
+<a name="toc"></a><span class="label">Classes:</span>
+<table>
+<thead>
+<tr>
+<td>Status</td><td>Fully Qualified Name</td>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="
+						modified
+					">MODIFIED
+				(!)
+			</span></td><td><a href="#org.eeichinger.servicevirtualisation.jdbc.JdbcServiceVirtualizationFactory">org.eeichinger.servicevirtualisation.jdbc.JdbcServiceVirtualizationFactory</a></td>
+</tr>
+<tr>
+<td><span class="
+						new
+					">NEW</span></td><td><a href="#org.eeichinger.servicevirtualisation.jdbc.MockResultSetHelper">org.eeichinger.servicevirtualisation.jdbc.MockResultSetHelper</a></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="explanations">
+<span>
+				Binary incompatible changes are marked with (!) while source incompatible changes are marked with (*).
+			</span>
+</div>
+<div>
+<div>
+<div class="class" id="org.eeichinger.servicevirtualisation.jdbc.JdbcServiceVirtualizationFactory">
+<div class="class_header">
+<span class="label"><a name="org.eeichinger.servicevirtualisation.jdbc.JdbcServiceVirtualizationFactory"></a><span class="
+						modified
+					">MODIFIED
+				(!)
+			</span><span class="
+					">
+					&nbsp;
+				</span><span class="
+							unchanged modifier
+						"></span><span class="
+							unchanged modifier
+						"></span><span class="
+							unchanged modifier
+						">public&nbsp;</span><span class="
+							unchanged modifier
+						"></span><span class="
+							unchanged modifier
+						"></span><span class="
+						unchanged
+					">class</span>&nbsp;
+						org.eeichinger.servicevirtualisation.jdbc.JdbcServiceVirtualizationFactory</span><a href="#toc" class="toc_link">top</a>
+</div>
+<div class="class_superclass"></div>
+<div class="class_interfaces"></div>
+<div class="class_fields"></div>
+<div class="class_constructors"></div>
+<div class="class_methods">
+<span class="label_class_member">Methods:</span>
+<table>
+<thead>
+<tr>
+<td>Status</td><td>Modifier</td><td>Type</td><td>Method</td><td>Exceptions</td><td>Compatibility Changes:</td><td>Line Number</td>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="
+						removed
+					">REMOVED
+				(!)
+			</span></td><td><span class="
+							removed modifier
+						"></span><span class="
+							removed modifier
+						"></span><span class="
+							removed modifier
+						">public&nbsp;</span><span class="
+							removed modifier
+						"></span><span class="
+							removed modifier
+						"></span><span class="
+							removed modifier
+						"></span></td><td><span class="
+						removed method_return_type
+					">int[]</span></td><td>createBatchUpdateResultSet(java.lang.String)
+				</td><td>n.a.</td><td>
+<table>
+<thead>
+<tr>
+<td>Change</td>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>METHOD_REMOVED</td>
+</tr>
+</tbody>
+</table>
+</td><td>
+<table>
+<thead>
+<tr>
+<td>Old file</td><td>New file</td>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>334</td><td>n.a.</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+<tr>
+<td><span class="
+						removed
+					">REMOVED
+				(!)
+			</span></td><td><span class="
+							removed modifier
+						"></span><span class="
+							removed modifier
+						"></span><span class="
+							removed modifier
+						">public&nbsp;</span><span class="
+							removed modifier
+						"></span><span class="
+							removed modifier
+						"></span><span class="
+							removed modifier
+						"></span></td><td><span class="
+						removed method_return_type
+					">com.mockrunner.mock.jdbc.MockResultSet</span></td><td>createSybaseResultSet(boolean,
+					<wbr></wbr>java.lang.String,
+					<wbr></wbr>java.lang.String)
+				</td><td>n.a.</td><td>
+<table>
+<thead>
+<tr>
+<td>Change</td>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>METHOD_REMOVED</td>
+</tr>
+</tbody>
+</table>
+</td><td>
+<table>
+<thead>
+<tr>
+<td>Old file</td><td>New file</td>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>356</td><td>n.a.</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+<div>
+<div class="class" id="org.eeichinger.servicevirtualisation.jdbc.MockResultSetHelper">
+<div class="class_header">
+<span class="label"><a name="org.eeichinger.servicevirtualisation.jdbc.MockResultSetHelper"></a><span class="
+						new
+					">NEW</span><span class="
+					">
+					&nbsp;
+				</span><span class="
+							new modifier
+						"></span><span class="
+							new modifier
+						"></span><span class="
+							new modifier
+						">public&nbsp;</span><span class="
+							new modifier
+						"></span><span class="
+							new modifier
+						"></span><span class="
+						new
+					">class</span>&nbsp;
+						org.eeichinger.servicevirtualisation.jdbc.MockResultSetHelper</span><a href="#toc" class="toc_link">top</a>
+</div>
+<div class="class_superclass"></div>
+<div class="class_interfaces"></div>
+<div class="class_fields"></div>
+<div class="class_constructors">
+<span class="label_class_member">Constructors:</span>
+<table>
+<thead>
+<tr>
+<td>Status</td><td>Modifier</td><td>Constructor</td><td>Exceptions</td><td>Compatibility Changes:</td><td>Line Number</td>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="
+						new
+					">NEW</span></td><td><span class="
+							new modifier
+						"></span><span class="
+							new modifier
+						"></span><span class="
+							new modifier
+						">public&nbsp;</span><span class="
+							new modifier
+						"></span><span class="
+							new modifier
+						"></span><span class="
+							new modifier
+						"></span></td><td>MockResultSetHelper()
+				</td><td>n.a.</td><td>
+			n.a.
+		</td><td>
+<table>
+<thead>
+<tr>
+<td>Old file</td><td>New file</td>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>n.a.</td><td>17</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="class_methods">
+<span class="label_class_member">Methods:</span>
+<table>
+<thead>
+<tr>
+<td>Status</td><td>Modifier</td><td>Type</td><td>Method</td><td>Exceptions</td><td>Compatibility Changes:</td><td>Line Number</td>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="
+						new
+					">NEW</span></td><td><span class="
+							new modifier
+						"></span><span class="
+							new modifier
+						">static&nbsp;</span><span class="
+							new modifier
+						">public&nbsp;</span><span class="
+							new modifier
+						"></span><span class="
+							new modifier
+						"></span><span class="
+							new modifier
+						"></span></td><td><span class="
+						new method_return_type
+					">com.mockrunner.mock.jdbc.MockResultSet</span></td><td>parseResultSetFromSybaseXmlString(boolean,
+					<wbr></wbr>java.lang.String,
+					<wbr></wbr>java.lang.String)
+				</td><td>n.a.</td><td>
+			n.a.
+		</td><td>
+<table>
+<thead>
+<tr>
+<td>Old file</td><td>New file</td>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>n.a.</td><td>35</td>
+</tr>
+</tbody>
+</table>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+
+</body>
+</html>
