@@ -25,7 +25,7 @@ if [[ "$IS_RELEASE_BUILD" = 'true' ]]; then
 
     openssl aes-256-cbc -K $encrypted_c0518a5d8bb7_key -iv $encrypted_c0518a5d8bb7_iv -in gpg.secrets.tar.enc -out gpg.secrets.tar -d
     tar xvf gpg.secrets.tar
-    cp id_rsa_travisci ~/.ssh/id_rsa # copy travis-ci-eeichinger ssh key
+    mv id_rsa_travisci ~/.ssh/id_rsa # copy travis-ci-eeichinger ssh key
 
     mvn deploy -DskipTests -B -Psign --settings settings.xml
 
