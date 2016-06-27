@@ -3,11 +3,12 @@
 #cd target/gh-pages
 #git init
 #git remote add origin https://github.com/eeichinger/jdbc-service-virtualisation.git
-#git config user.email "travis-ci@travis-ci.org"
-#git config user.name "Travis CI"
 #git pull origin gh-pages
-git checkout gh-pages
-git pull
+
+git config user.email "travis-ci@travis-ci.org"
+git config user.name "Travis CI"
+git fetch origin gh-pages:refs/remotes/origin/gh-pages
+git checkout -b gh-pages origin/gh-pages
 git rm -rf apidocs
 cp -R .target/apidocs .
 git rm -rf japicmp
