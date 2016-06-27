@@ -9,7 +9,7 @@ IS_RELEASE_BUILD=true
 
 [[ "$TRAVIS_TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.RELEASE$ ]] || IS_RELEASE=false
 [ "$TRAVIS_BRANCH" = 'master' ] || IS_MASTER=false
-[ "$TRAVIS_PULL_REQUEST" = 'true' ] || IS_PR=false
+[ "$TRAVIS_PULL_REQUEST" != 'false' ] || IS_PR=false
 
 echo IS_MASTER=$IS_MASTER
 echo IS_RELEASE=$IS_RELEASE
