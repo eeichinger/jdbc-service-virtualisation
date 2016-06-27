@@ -150,7 +150,7 @@ public class UseWireMockToMockJdbcResultSetsTest {
     }
 
     @Test
-    public void intercepts_matching_batch_update_and_responds_with_int_array() {
+    public void intercepts_matching_batch_update_and_responds_with_two_dimensional_int_array() {
         // setup mock for batch 1 - always the last parameters of each batch will be sent
         WireMock.stubFor(WireMock
                 .post(WireMock.urlPathEqualTo("/sqlstub"))
@@ -209,6 +209,43 @@ public class UseWireMockToMockJdbcResultSetsTest {
         assertThat(result[1][1], equalTo(-2));
     }
 
+    @Test
+    public void intercepts_matching_batch_update_and_responds_with_int_array() {
+        // setup mock resultsets - always the last parameters of each batch will be sent
+        WireMock.stubFor(WireMock
+                .post(WireMock.urlPathEqualTo("/sqlstub"))
+                // SQL Statement is posted in the body, use any available matchers to match
+                .withRequestBody(WireMock.equalTo("INSERT INTO PEOPLE (name, birthday, placeofbirth) " +
+                        "VALUES (?, ?, ?)"))
+                // Parameters are sent with index has headername and value as headervalue
+                .withHeader("1", WireMock.matching("Volker Waltner")) // last arg of batch
+                .withHeader("2", WireMock.matching(".+"))
+                .withHeader("3", WireMock.matching(".+"))
+                // return a recordset
+                .willReturn(WireMock
+                        .aResponse()
+                        .withBody(""
+                                + "0,1,-1,-2"
+                        )
+                )
+        );
+
+        List<Object[]> batchArgs = new ArrayList<Object[]>() {{
+            add(new Object[]{"Erich Erichinger", "1980-01-01", "Vienna"});
+            add(new Object[]{"Matthias Bernloehr", "1990-01-01", "Germany"});
+            add(new Object[]{"Steffen Wegner", "1990-01-01", "Germany"});
+            add(new Object[]{"Volker Waltner", "1980-01-01", "Germany"});
+        }};
+
+        int[] result = jdbcTemplate.batchUpdate("INSERT INTO PEOPLE (name, birthday, placeofbirth) " +
+                "VALUES (?, ?, ?)", batchArgs);
+
+        assertThat(result.length, equalTo(4));
+        assertThat(result[0], equalTo(0));
+        assertThat(result[1], equalTo(1));
+        assertThat(result[2], equalTo(-1));
+        assertThat(result[3], equalTo(-2));
+    }
 
     @Test
     public void emulate_sqlexception_by_returning_400() {
