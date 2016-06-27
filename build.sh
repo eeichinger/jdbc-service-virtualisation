@@ -23,7 +23,7 @@ echo IS_RELEASE_BUILD=$IS_RELEASE_BUILD
 if [[ "$IS_RELEASE_BUILD" = 'true' ]]; then
     echo ===> Peforming release build
 
-    openssl aes-256-cbc -K $encrypted_11690a8d58e8_key -iv $encrypted_11690a8d58e8_iv -in gpg.secrets.tar.enc -out gpg.secrets.tar -d
+    openssl aes-256-cbc -K $encrypted_c0518a5d8bb7_key -iv $encrypted_c0518a5d8bb7_iv -in gpg.secrets.tar.enc -out gpg.secrets.tar -d
     tar xvf gpg.secrets.tar
     cp id_rsa_travisci ~/.ssh/id_rsa # copy travis-ci-eeichinger ssh key
 
