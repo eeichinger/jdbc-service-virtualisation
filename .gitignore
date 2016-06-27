@@ -4,5 +4,7 @@ target
 *.png
 *.gpg
 *.asc
-local.*
+local/*
 *.tar
+id_rsa_travisci
+.*
