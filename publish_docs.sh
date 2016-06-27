@@ -3,6 +3,8 @@ mkdir -p target/gh-pages
 cd target/gh-pages
 git init
 git remote add origin https://github.com/eeichinger/jdbc-service-virtualisation.git
+git config user.email "travis-ci@travis-ci.org"
+git config user.name "Travis CI"
 git pull origin gh-pages
 git rm -rf apidocs
 cp -R ../../target/apidocs .
