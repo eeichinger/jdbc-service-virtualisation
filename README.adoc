@@ -169,3 +169,6 @@ Travis is used to build and release this project https://travis-ci.org/eeichinge
 
 nightly builds are triggered via https://nightli.es/
 
+### Build Reports
+
+reports (Javadoc etc.) are published on https://eeichinger.github.com/jdbc-service-virtualisation
