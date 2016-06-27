@@ -1,4 +1,4 @@
-Comparing /Users/admin/.m2/repository/com/github/eeichinger/service-virtualisation/jdbc-service-virtualisation/0.0.2.RELEASE/jdbc-service-virtualisation-0.0.2.RELEASE.jar with /Users/admin/workspaces/com.github.eeichinger/jdbc-service-virtualisation/target/jdbc-service-virtualisation-1.0.1-SNAPSHOT.jar:
+Comparing /home/travis/.m2/repository/com/github/eeichinger/service-virtualisation/jdbc-service-virtualisation/0.0.2.RELEASE/jdbc-service-virtualisation-0.0.2.RELEASE.jar with /home/travis/build/eeichinger/jdbc-service-virtualisation/target/jdbc-service-virtualisation-1.0.1-SNAPSHOT.jar:
 ***! MODIFIED CLASS: PUBLIC org.eeichinger.servicevirtualisation.jdbc.JdbcServiceVirtualizationFactory  (not serializable)
 	---! REMOVED METHOD: PUBLIC(-) int[] createBatchUpdateResultSet(java.lang.String)
 	---! REMOVED METHOD: PUBLIC(-) com.mockrunner.mock.jdbc.MockResultSet createSybaseResultSet(boolean, java.lang.String, java.lang.String)
