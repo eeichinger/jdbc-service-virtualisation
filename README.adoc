@@ -11,7 +11,7 @@ This library provides JDBC DataSource wrapper (similar to https://github.com/p6s
 Under the hood it uses https://github.com/p6spy/p6spy[P6Spy] and http://mockrunner.sourceforge.net/examplesjdbc.html[MockRunner-JDBC] to spy on the JDBC connection and hooks into http://docs.oracle.com/javase/8/docs/api/java/sql/PreparedStatement.html#executeQuery--[PreparedStatement#executeQuery()]
 and http://docs.oracle.com/javase/8/docs/api/java/sql/PreparedStatement.html#executeUpdate--[PreparedStatement#executeUpdate()] to redirect the call to an HTTP Server as shown below:
 
-image:flow-spy.png[]
+image:doc/flow-spy.png[]
 
 The following example using Spring's JdbcTemplate to avoid boilerplate JDBC and demonstrates how to use the technique to just spy on a real database and intercept/mock only selected jdbc queries.
 
@@ -86,7 +86,7 @@ In Spy Mode, the service virtualizer spies on a real datasource. In this case, o
 
 Spy Mode is configured by wrapping the original DataSource using spyOnDataSource():
 
-image:flow-spy.png[]
+image:doc/flow-spy.png[]
 
 [source,java]
 ----
@@ -106,17 +106,14 @@ public void before() {
 
 *Full Example*
 
-[source,java]
-----
-include::src/test/java/example/UseWireMockToInterceptJdbcResultSetsTest.java[]
-----
+see link:src/test/java/example/UseWireMockToInterceptJdbcResultSetsTest.java[]
 
 
 ### Mock Mode
 
 In Mock Mode you don't need a real database. Any statement must be configured in WireMock. If WireMock returns 404 (i.e. no match was found), an {@link AssertionError} is thrown.
 
-image:flow-mock.png[]
+image:doc/flow-mock.png[]
 
 Mock Mode is configured by creating the datasource using createMockDataSource():
 
@@ -136,10 +133,7 @@ public void before() {
 
 *Full Example*
 
-[source,java]
-----
-include::src/test/java/example/UseWireMockToMockJdbcResultSetsTest.java[]
-----
+see link:src/test/java/example/UseWireMockToMockJdbcResultSetsTest.java[]
 
 
 ## Getting the Binaries
