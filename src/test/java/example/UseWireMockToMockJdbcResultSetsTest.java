@@ -225,7 +225,7 @@ public class UseWireMockToMockJdbcResultSetsTest {
                 .willReturn(WireMock
                         .aResponse()
                         .withBody(""
-                                + "1,1,1,1"
+                                + "0,1,-1,-2"
                         )
                 )
         );
@@ -241,10 +241,10 @@ public class UseWireMockToMockJdbcResultSetsTest {
                 "VALUES (?, ?, ?)", batchArgs);
 
         assertThat(result.length, equalTo(4));
-        assertThat(result[0], equalTo(1));
+        assertThat(result[0], equalTo(0));
         assertThat(result[1], equalTo(1));
-        assertThat(result[2], equalTo(1));
-        assertThat(result[3], equalTo(1));
+        assertThat(result[2], equalTo(-1));
+        assertThat(result[3], equalTo(-2));
     }
 
     @Test
