@@ -4,5 +4,5 @@ target
 *.png
 *.gpg
 *.asc
-local.*
+local/*
 *.tar
