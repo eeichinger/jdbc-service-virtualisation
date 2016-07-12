@@ -135,6 +135,59 @@ public void before() {
 
 see link:src/test/java/example/UseWireMockToMockJdbcResultSetsTest.java[]
 
+## Specifying ResultSets
+
+
+### Using "named" column elements
+
+XML ResultSets are specified in the same form as Sybase XML (http://dcx.sybase.com/1200/en/dbusage/xmldraftchapter-s-3468454.html), Element-names are interpreted as column-names. Only the first row is parsed to determine column names to be used for the resultset:
+
+[source,xml]
+----
+<resultset xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'>
+     <row><name>Erich Eichinger</name><birthday>1990-01-02</birthday><placeofbirth>London</placeofbirth></row>
+     <row><name>Matthias Bernlöhr</name><birthday>1995-03-04</birthday><placeofbirth>Stuttgart</placeofbirth></row>
+     ...
+</resultset>
+----
+
+If your column-name can't be used as an XML element name, you can use the 'name' attribute instead. The element name is ignored in this case:
+
+[source,xml]
+----
+<resultset xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'>
+     <row><name>Erich Eichinger</name><birthday>1990-01-02</birthday><val name='Place of Birth'>London</val></row>
+     ...
+</resultset>
+----
+
+
+### Using "positional" column elements
+
+Instead of named xml elements, you can specify a special <cols> Element on top of the result set in order to specify the columns to be used for the resultset. In this case the order of value elements is obviously relevant:
+
+[source,xml]
+----
+<resultset>
+     <cols><col>Name</col><col>Birthday</col><col>Place of Birth</col></cols>
+     <row><val>James Bond</val><val>1900-04-01</val><val>Philadelphia</val></row>
+</resultset>
+----
+
+
+### NULL values
+
+For "named" column formats, simply omit the element to emulate NULL values. Alternatively you can use the "xsi:nil='true'" attribute. For positional column formats it MUST be specified using xsi:nil
+
+[source,xml]
+----
+<resultset xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'>
+     <cols><col>name</col><col>birthday</col><col>placeofbirth</col></cols>
+     <row><col>James Bond</col><col xsi:nil='true'/><col>Philadelphia</col></row>
+     <row><name>Erich Eichinger</name><!-- birthday omitted --><placeofbirth>Philadelphia</placeofbirth></row>
+</resultset>
+----
+
 
 ## Getting the Binaries
 
@@ -145,7 +198,7 @@ the library is available from Maven Central via
 <dependency>
     <groupId>com.github.eeichinger.service-virtualisation</groupId>
     <artifactId>jdbc-service-virtualisation</artifactId>
-    <version>0.0.2.RELEASE</version>
+    <version>0.0.3.RELEASE</version>
 </dependency>
 ----
 
