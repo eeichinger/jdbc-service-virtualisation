@@ -7,12 +7,11 @@ git config user.name "travis-ci-eeichinger"
 # add ssh url to project
 git remote add site git@github.com:eeichinger/jdbc-service-virtualisation.git
 
-# stash away any changes
+# stash away any changes, reset - don't know what else to do...
 # TODO: doesn't work?
 # /usr/lib/git-core/git-stash: 186: /usr/lib/git-core/git-stash: cannot create /home/travis/build/eeichinger/jdbc-service-virtualisation/.git/logs/refs/stash: Directory nonexistent
-#git add -A :/
-#git stash
-
+git add -A :/
+git stash
 git reset --hard
 
 # fetch gh-pages branch
