@@ -1,13 +1,17 @@
 package org.eeichinger.servicevirtualisation.jdbc;
 
 import java.io.StringReader;
-import java.util.Iterator;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.mockrunner.base.NestedApplicationException;
 import com.mockrunner.mock.jdbc.MockResultSet;
 import org.jdom.Document;
 import org.jdom.Element;
+import org.jdom.Namespace;
 import org.jdom.input.SAXBuilder;
 
 /**
@@ -18,19 +22,22 @@ public class MockResultSetHelper {
 
     /**
      * Parse a MockResultSet from the provided Sybase-style formatted XML Document.
+     * See <a href="http://dcx.sybase.com/1200/en/dbusage/xmldraftchapter-s-3468454.html">Sybase - Using FOR XML RAW</a> documentation and
+     * <a href="http://dcx.sybase.com/1200/en/dbusage/forxml-null.html">FOR XML and NULL values</a> for handling NULL values.
+     * <p>
+     * Note: Currently only the ELEMENT form of the format is supported (see example below)!
      * <p>
      * Example XML:
      * <pre>{@code
-     * <resultset>
-     *      <cols><col>birthday</col><col>placeofbirth</col></cols>
-     *      <row>
-     *          <birthday>1980-01-01</birthday>
-     *          <placeofbirth>Vienna</placeofbirth>
-     *      </row>
+     * <resultset xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'>
+     *    <row><name>Erich Eichinger</name><birthday xsi:nil='true' /><placeofbirth>London</placeofbirth></row>
+     *    <row><name>Matthias Bernlöhr</name><placeofbirth>Stuttgart</placeofbirth></row>
+     *    <row><name>Max Mustermann</name><birthday></birthday><placeofbirth>Berlin</placeofbirth></row>
+     *    <row><name>James Bond</name><birthday>1900-01-04</birthday><placeofbirth>Philadelphia</placeofbirth></row>
      * </resultset>
      * }</pre>
      */
-    @SuppressWarnings("rawtypes")
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public static MockResultSet parseResultSetFromSybaseXmlString(String id, String xml) {
         MockResultSet resultSet = new MockResultSet(id);
         SAXBuilder builder = new SAXBuilder();
@@ -38,39 +45,112 @@ public class MockResultSetHelper {
 
         try {
             doc = builder.build(new StringReader(xml));
-            Element root = doc.getRootElement();
-            List rows = root.getChildren("row");
-            Iterator ri = rows.iterator();
-            boolean firstIteration = true;
-            int colNum = 0;
-            while (ri.hasNext()) {
-                Element cRow = (Element) ri.next();
-                List cRowChildren = cRow.getChildren();
-                Iterator cri = cRowChildren.iterator();
-                if (firstIteration) {
-                    List columns = cRowChildren;
-                    Iterator ci = columns.iterator();
 
-                    while (ci.hasNext()) {
-                        Element ccRow = (Element) ci.next();
-                        resultSet.addColumn(ccRow.getName());
-                        colNum++;
-                    }
-                    firstIteration = false;
+            List<String> columnNames = parseColumnNames(resultSet, doc.getRootElement());
+
+            Element root = doc.getRootElement();
+            List<Element> rows = root.getChildren("row");
+            for (Element currentRow : rows) {
+                List<Element> columns = (List<Element>) currentRow.getChildren();
+                DatabaseRow rowValues = new DatabaseRow(columnNames);
+                for (Element col : columns) {
+                    rowValues.add(col);
                 }
-                String[] cRowValues = new String[colNum];
-                int curCol = 0;
-                while (cri.hasNext()) {
-                    Element crValue = (Element) cri.next();
-                    String value = trim ? crValue.getTextTrim() : crValue.getText();
-                    cRowValues[curCol] = value;
-                    curCol++;
-                }
-                resultSet.addRow(cRowValues);
+                resultSet.addRow(rowValues.toRowValues());
             }
         } catch (Exception exc) {
             throw new NestedApplicationException("Failure while reading from XML file", exc);
         }
         return resultSet;
     }
+
+    private static class DatabaseRow {
+        final List<String> colNames;
+        final Map<String, String> namedValues;
+        final String[] positionalValues;
+
+        int colCount;
+
+        public DatabaseRow(List<String> colNames) {
+            this.colNames = colNames;
+            this.colCount = 0;
+            this.namedValues = new HashMap<>();
+            this.positionalValues = new String[this.colNames.size()];
+        }
+
+        public void add(Element col) {
+            String name = getElementName(col);
+            String val = getNilableElementText(col);
+            if (colNames.contains(name)) {
+                namedValues.put(name, val);
+            } else {
+                positionalValues[colCount] = val;
+            }
+            colCount++;
+        }
+
+        public List<Object> toRowValues() {
+            List<Object> vals = new ArrayList<>(this.colNames.size());
+            for(int i=0;i<colNames.size();i++) {
+                String colName = colNames.get(i);
+                String colValue;
+                if (namedValues.containsKey(colName)) {
+                    colValue = namedValues.get(colName);
+                } else {
+                    colValue = positionalValues[i];
+                }
+                vals.add(colValue);
+            }
+            return vals;
+        }
+    }
+
+    private static String getNilableElementText(Element col) {
+        String val = col.getText();
+        if ("true".equalsIgnoreCase(col.getAttributeValue("nil", nsXsi))) {
+            val = null;
+        }
+        return val;
+    }
+
+    private static List<String> parseColumnNames(MockResultSet resultSet, Element root) {
+        // determine columns
+        Element colsHeaderRow = root.getChild("cols");
+        List<String> colNames = new ArrayList<>();
+        if (colsHeaderRow != null) {
+            for(Element col : cast(colsHeaderRow.getChildren("col"), Element.class)) {
+                final String colName = col.getText();
+                resultSet.addColumn(colName);
+                colNames.add(colName);
+            }
+        } else {
+            Element headerRow = cast(root.getChildren("row"), Element.class).get(0);
+            for(Element col : cast(headerRow.getChildren(), Element.class)) {
+                String colName = getElementName(col);
+                resultSet.addColumn(colName);
+                colNames.add(colName);
+            }
+        }
+        return Collections.unmodifiableList(colNames);
+    }
+
+    private static String getElementName(Element col) {
+        String name = col.getAttributeValue("name");
+        if (name == null) {
+            name = col.getName();
+        }
+        return name;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> List<T> cast(List<?> list) {
+        return (List<T>) list;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> List<T> cast(List<?> list, Class<T> elementType) {
+        return (List<T>) list;
+    }
+
+    private static final Namespace nsXsi = Namespace.getNamespace("http://www.w3.org/2001/XMLSchema-instance");
 }

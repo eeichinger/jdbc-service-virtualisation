@@ -1,5 +1,11 @@
 package example;
 
+import java.sql.PreparedStatement;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.sql.DataSource;
+
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import lombok.Value;
@@ -10,21 +16,17 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
 
-import javax.sql.DataSource;
-import java.sql.PreparedStatement;
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.MatcherAssert.*;
+import static org.hamcrest.Matchers.*;
 
 /**
  * Demonstrates you to use the technique to just spy on a real database and intercept/mock only selected jdbc queries
- *
+ * <p>
  * Under the hood it uses P6Spy to spy on the jdbc connection and hooks into {@link PreparedStatement#executeQuery()}
  * to redirect the call to WireMock.
- *
+ * <p>
  * If WireMock returns 404 (i.e. no match was found), an {@link AssertionError} is thrown.
  */
 public class UseWireMockToMockJdbcResultSetsTest {
@@ -70,6 +72,53 @@ public class UseWireMockToMockJdbcResultSetsTest {
             );
 
         assertThat(result, equalTo("Matthias Bernlöhr"));
+    }
+
+    @Test
+    public void can_mock_nullvalues() {
+        // setup mock resultsets
+        WireMock.stubFor(WireMock
+                .post(WireMock.urlPathEqualTo("/sqlstub"))
+                    // SQL Statement is posted in the body, use any available matchers to match
+                .withRequestBody(WireMock.equalTo("SELECT * FROM PEOPLE WHERE name=?"))
+                    // return a recordset
+                .willReturn(WireMock
+                        .aResponse()
+                        .withHeader("content-type", "application/xml; charset=utf-8")
+                        .withBody(""
+                                + "<resultset xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'>"
+                                + "<cols><col>name</col><col>birthday</col><col>placeofbirth</col></cols>"
+                                // you can mock NULL with named values by omitting the element or using xsi:nil='true' attribute
+                                + "     <row><name>Erich Eichinger</name><placeofbirth xsi:nil='true' /></row>"
+                                // you MUST use xsi:nil='true' for positional values
+                                + "     <row><col>Matthias Bernlöhr</col><col xsi:nil='true' /><col xsi:nil='true'></col></row>"
+                                + "</resultset>"
+                        )
+                )
+        );
+
+        RowMapper<Person> rowMapper = (rs, rowNum) -> {
+            return new Person(
+                rs.getString("name")
+                , rs.getString("birthday")
+                , rs.getString("placeofbirth")
+            );
+        };
+        List<Person> result = jdbcTemplate
+            .query(
+                "SELECT * FROM PEOPLE WHERE name=?"
+                , rowMapper
+                , args("Erich Eichinger")
+            );
+
+        Person erich = result.get(0);
+        assertThat(erich.getName(), equalTo("Erich Eichinger"));
+        assertThat(erich.getBirthdate(), nullValue());
+        assertThat(erich.getPlaceOfBirth(), nullValue());
+        Person matthias = result.get(1);
+        assertThat(matthias.getName(), equalTo("Matthias Bernlöhr"));
+        assertThat(matthias.getBirthdate(), nullValue());
+        assertThat(matthias.getPlaceOfBirth(), nullValue());
     }
 
     @Test
@@ -128,8 +177,8 @@ public class UseWireMockToMockJdbcResultSetsTest {
         ;
 
         int res = jdbcTemplate.update(
-                "UPDATE PEOPLE set birthday=? WHERE name=?", "1970-01-01", NAME_ERICH_EICHINGER
-            );
+            "UPDATE PEOPLE set birthday=? WHERE name=?", "1970-01-01", NAME_ERICH_EICHINGER
+        );
 
         assertThat(res, equalTo(2));
     }
@@ -142,11 +191,11 @@ public class UseWireMockToMockJdbcResultSetsTest {
         // setup mock resultsets
         WireMock.stubFor(WireMock
                 .post(WireMock.urlPathEqualTo("/sqlstub"))
-                // SQL Statement is posted in the body, use any available matchers to match
+                    // SQL Statement is posted in the body, use any available matchers to match
                 .withRequestBody(WireMock.equalTo("SELECT birthday, placeofbirth FROM PEOPLE WHERE name = ?"))
-                // Parameters are sent with index has headername and value as headervalue
+                    // Parameters are sent with index has headername and value as headervalue
                 .withHeader("1", WireMock.equalTo(NAME_ERICH_EICHINGER))
-                // return a recordset
+                    // return a recordset
                 .willReturn(WireMock
                         .aResponse()
                         .withBody(""
@@ -163,11 +212,11 @@ public class UseWireMockToMockJdbcResultSetsTest {
         ;
 
         String[] result = jdbcTemplate.queryForObject(
-                "SELECT birthday, placeofbirth FROM PEOPLE WHERE name = ?"
-                , new Object[] { NAME_ERICH_EICHINGER }
-                , (rs, rowNum) -> {
-                    return new String[] { rs.getString(1), rs.getString(2) };
-                }
+            "SELECT birthday, placeofbirth FROM PEOPLE WHERE name = ?"
+            , new Object[]{NAME_ERICH_EICHINGER}
+            , (rs, rowNum) -> {
+                return new String[]{rs.getString(1), rs.getString(2)};
+            }
         );
 
         assertThat(result[0], equalTo("1980-01-01"));
@@ -221,7 +270,7 @@ public class UseWireMockToMockJdbcResultSetsTest {
         }};
 
         int[][] result = jdbcTemplate.batchUpdate("INSERT INTO PEOPLE (name, birthday, placeofbirth) " +
-                "VALUES (?, ?, ?)", persons, 2, (ps, argument) -> {
+            "VALUES (?, ?, ?)", persons, 2, (ps, argument) -> {
             ps.setString(1, argument.getName());
             ps.setString(2, argument.getBirthdate());
             ps.setString(3, argument.getPlaceOfBirth());
@@ -239,14 +288,14 @@ public class UseWireMockToMockJdbcResultSetsTest {
         // setup mock resultsets - always the last parameters of each batch will be sent
         WireMock.stubFor(WireMock
                 .post(WireMock.urlPathEqualTo("/sqlstub"))
-                // SQL Statement is posted in the body, use any available matchers to match
+                    // SQL Statement is posted in the body, use any available matchers to match
                 .withRequestBody(WireMock.equalTo("INSERT INTO PEOPLE (name, birthday, placeofbirth) " +
-                        "VALUES (?, ?, ?)"))
-                // Parameters are sent with index has headername and value as headervalue
+                    "VALUES (?, ?, ?)"))
+                    // Parameters are sent with index has headername and value as headervalue
                 .withHeader("1", WireMock.matching("Volker Waltner")) // last arg of batch
                 .withHeader("2", WireMock.matching(".+"))
                 .withHeader("3", WireMock.matching(".+"))
-                // return a recordset
+                    // return a recordset
                 .willReturn(WireMock
                         .aResponse()
                         .withBody(""
@@ -263,7 +312,7 @@ public class UseWireMockToMockJdbcResultSetsTest {
         }};
 
         int[] result = jdbcTemplate.batchUpdate("INSERT INTO PEOPLE (name, birthday, placeofbirth) " +
-                "VALUES (?, ?, ?)", batchArgs);
+            "VALUES (?, ?, ?)", batchArgs);
 
         assertThat(result.length, equalTo(4));
         assertThat(result[0], equalTo(0));
@@ -323,4 +372,7 @@ public class UseWireMockToMockJdbcResultSetsTest {
         String placeOfBirth;
     }
 
+    private static Object[] args(Object... args) {
+        return args;
+    }
 }
