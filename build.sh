@@ -27,7 +27,7 @@ if [[ "$IS_RELEASE_BUILD" = 'true' ]]; then
     tar xvf gpg.secrets.tar
     mv id_rsa_travisci ~/.ssh/id_rsa # copy travis-ci-eeichinger ssh key
 
-    mvn deploy -DskipTests -B -Psign --settings settings.xml
+    mvn deploy -B -Psign --settings settings.xml
 
     ./publish_docs.sh
 else
