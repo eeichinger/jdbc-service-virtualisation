@@ -31,7 +31,7 @@ public class MockResultSetHelper {
      * }</pre>
      */
     @SuppressWarnings("rawtypes")
-    public static MockResultSet parseResultSetFromSybaseXmlString(boolean trim, String id, String xml) {
+    public static MockResultSet parseResultSetFromSybaseXmlString(String id, String xml) {
         MockResultSet resultSet = new MockResultSet(id);
         SAXBuilder builder = new SAXBuilder();
         Document doc;

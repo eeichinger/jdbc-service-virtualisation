@@ -148,7 +148,7 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
                 if (int.class.equals(method.getReturnType())) {
                     return Integer.parseInt(responseContent);
                 }
-                return MockResultSetHelper.parseResultSetFromSybaseXmlString(true, "x", responseContent);
+                return MockResultSetHelper.parseResultSetFromSybaseXmlString("x", responseContent);
             }
             if (response.getStatusLine().getStatusCode() == 400) {
                 final Header reasonHeader = response.getFirstHeader("reason");
