@@ -48,6 +48,31 @@ public class UseWireMockToMockJdbcResultSetsTest {
     }
 
     @Test
+    public void default_to_utf8_response_parsing() {
+        WireMock.stubFor(WireMock
+                .post(WireMock.urlPathEqualTo("/sqlstub"))
+                .withRequestBody(WireMock.equalTo("SELECT * FROM PEOPLE WHERE name=?"))
+                .willReturn(WireMock
+                        .aResponse()
+                        .withBody(""
+                                + "<resultset>"
+                                + "     <row><name>Matthias Bernlöhr</name></row>"
+                                + "</resultset>"
+                        )
+                )
+        );
+
+        String result = jdbcTemplate
+            .queryForObject(
+                "SELECT * FROM PEOPLE WHERE name=?"
+                , String.class
+                , args("Erich Eichinger")
+            );
+
+        assertThat(result, equalTo("Matthias Bernlöhr"));
+    }
+
+    @Test
     public void intercepts_matching_query_and_responds_with_mockresultset() {
         final String NAME_ERICH_EICHINGER = "Erich Eichinger";
 
@@ -158,7 +183,7 @@ public class UseWireMockToMockJdbcResultSetsTest {
                 .withRequestBody(WireMock.equalTo("INSERT INTO PEOPLE (name, birthday, placeofbirth) " +
                     "VALUES (?, ?, ?)"))
                     // Parameters are sent with index has headername and value as headervalue
-                .withHeader("1", WireMock.matching("Matthias Bernloehr")) // last arg of batch 1
+                .withHeader("1", WireMock.matching("Matthias Bernlöhr")) // last arg of batch 1
                 .withHeader("2", WireMock.matching(".+"))
                 .withHeader("3", WireMock.matching(".+"))
                     // return a recordset
@@ -190,7 +215,7 @@ public class UseWireMockToMockJdbcResultSetsTest {
 
         List<Person> persons = new ArrayList<Person>() {{
             add(new Person("Erich Erichinger", "1980-01-01", "Vienna"));
-            add(new Person("Matthias Bernloehr", "1990-01-01", "Germany"));
+            add(new Person("Matthias Bernlöhr", "1990-01-01", "Germany"));
             add(new Person("Steffen Wegner", "1990-01-01", "Germany"));
             add(new Person("Volker Waltner", "1980-01-01", "Germany"));
         }};
@@ -232,7 +257,7 @@ public class UseWireMockToMockJdbcResultSetsTest {
 
         List<Object[]> batchArgs = new ArrayList<Object[]>() {{
             add(new Object[]{"Erich Erichinger", "1980-01-01", "Vienna"});
-            add(new Object[]{"Matthias Bernloehr", "1990-01-01", "Germany"});
+            add(new Object[]{"Matthias Bernlöhr", "1990-01-01", "Germany"});
             add(new Object[]{"Steffen Wegner", "1990-01-01", "Germany"});
             add(new Object[]{"Volker Waltner", "1980-01-01", "Germany"});
         }};

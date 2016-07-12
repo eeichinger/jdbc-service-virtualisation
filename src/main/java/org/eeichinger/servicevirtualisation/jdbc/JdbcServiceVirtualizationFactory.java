@@ -141,7 +141,7 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
 
         try (CloseableHttpResponse response = httpclient.execute(httpPost)) {
             if (response.getStatusLine().getStatusCode() == 200) {
-                String responseContent = EntityUtils.toString(response.getEntity());
+                String responseContent = EntityUtils.toString(response.getEntity(), "utf-8");
                 if(int[].class.equals(method.getReturnType())) {
                     return parseBatchUpdateRowsAffected(responseContent);
                 }
