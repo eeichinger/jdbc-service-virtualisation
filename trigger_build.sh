@@ -13,4 +13,4 @@ curl -s -X POST \
   -H "Travis-API-Version: 3" \
   -H "Authorization: token $1" \
   -d "$body" \
-  https://api.travis-ci.org/repo/eeichinger/jdbc-service-virtualisation/requests
+  https://api.travis-ci.org/repo/eeichinger%2jdbc-service-virtualisation/requests
