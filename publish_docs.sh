@@ -8,8 +8,12 @@ git config user.name "travis-ci-eeichinger"
 git remote add site git@github.com:eeichinger/jdbc-service-virtualisation.git
 
 # stash away any changes
-git add -A :/
-git stash
+# TODO: doesn't work?
+# /usr/lib/git-core/git-stash: 186: /usr/lib/git-core/git-stash: cannot create /home/travis/build/eeichinger/jdbc-service-virtualisation/.git/logs/refs/stash: Directory nonexistent
+#git add -A :/
+#git stash
+
+git reset --hard
 
 # fetch gh-pages branch
 git fetch site gh-pages:refs/remotes/site/gh-pages
