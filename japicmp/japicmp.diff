@@ -5,4 +5,4 @@ Comparing /home/travis/.m2/repository/com/github/eeichinger/service-virtualisati
 +++  NEW CLASS: PUBLIC(+) org.eeichinger.servicevirtualisation.jdbc.MockResultSetHelper  (not serializable)
 	+++  NEW SUPERCLASS: java.lang.Object
 	+++  NEW CONSTRUCTOR: PUBLIC(+) MockResultSetHelper()
-	+++  NEW METHOD: PUBLIC(+) STATIC(+) com.mockrunner.mock.jdbc.MockResultSet parseResultSetFromSybaseXmlString(boolean, java.lang.String, java.lang.String)
+	+++  NEW METHOD: PUBLIC(+) STATIC(+) com.mockrunner.mock.jdbc.MockResultSet parseResultSetFromSybaseXmlString(java.lang.String, java.lang.String)
