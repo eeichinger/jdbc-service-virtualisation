@@ -6,7 +6,7 @@
 
     <groupId>com.github.eeichinger.service-virtualisation</groupId>
     <artifactId>jdbc-service-virtualisation</artifactId>
-    <version>1.0.1-SNAPSHOT</version>
+    <version>0.0.0-SNAPSHOT</version>
 
     <name>${project.groupId}:${project.artifactId}</name>
     <description>A library to support JDBC spying and mocking via HTTP using a potentially remote WireMock or similar.</description>
@@ -342,6 +342,7 @@
                 <artifactId>japicmp-maven-plugin</artifactId>
                 <version>0.8.0</version>
                 <configuration>
+                    <skip>true</skip>
                     <oldVersion>
                         <!-- always compare against latest release version in Nexus -->
                         <dependency>
