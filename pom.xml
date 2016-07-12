@@ -342,7 +342,6 @@
                 <artifactId>japicmp-maven-plugin</artifactId>
                 <version>0.8.0</version>
                 <configuration>
-                    <skip>true</skip>
                     <oldVersion>
                         <!-- always compare against latest release version in Nexus -->
                         <dependency>
@@ -375,7 +374,7 @@
                         <!-- report only diff to latest release -->
                         <onlyModified>true</onlyModified>
                         <!-- we MUST increase minor or major version number if you want to release a breaking change - see http://semver.org/ -->
-                        <breakBuildBasedOnSemanticVersioning>true</breakBuildBasedOnSemanticVersioning>
+                        <breakBuildBasedOnSemanticVersioning>false</breakBuildBasedOnSemanticVersioning>
                         <!-- report breaking changes (e.g. removals) as well as additions and compatible changes on the public API -->
                         <onlyBinaryIncompatible>false</onlyBinaryIncompatible>
                         <!-- generate html report -->
