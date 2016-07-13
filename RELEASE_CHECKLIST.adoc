@@ -1,10 +1,11 @@
 
 Adapted from https://uima.apache.org/checklist-release.html
 
-- Update Release Notes
+* Ensure resolved issues are closed
 
-Check the list of issues that have been closed since the last release.
+* Update Change Log at bottom of README
++
+Check the list of issues that have been closed since the last release, see https://github.com/olivierlacan/keep-a-changelog for a good guide
 
-
-- Update Version number in binaries usage section of README.adoc
+* Update Version number in binaries usage section of README.adoc
 

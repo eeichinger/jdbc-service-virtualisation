@@ -225,3 +225,20 @@ nightly builds are triggered via https://nightli.es/
 ### Build Reports
 
 reports (Javadoc etc.) are published on https://eeichinger.github.com/jdbc-service-virtualisation
+
+
+## Change Log
+
+The project will follow semantic versioning as soon as a stable 1.x.x line is released. For 0.x.x releases please expect binary incompatible changes.
+
+### 0.0.3.RELEASE (2016-07-12)
+
+.Enhancements
+- https://github.com/eeichinger/jdbc-service-virtualisation/issues/9[#9] Default xml result-set response parsing to UTF-8 instead ISO-8859-1
+- https://github.com/eeichinger/jdbc-service-virtualisation/issues/8[#8] Support NULL values in Mock ResultSets
+
+.Bugs
+- https://github.com/eeichinger/jdbc-service-virtualisation/issues/4[#4] pull request builds on travis fail b/c they can't be signed
+
+
+
