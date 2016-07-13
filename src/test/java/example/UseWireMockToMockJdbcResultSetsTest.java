@@ -11,6 +11,7 @@ import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import lombok.Value;
 import org.eeichinger.servicevirtualisation.jdbc.JdbcServiceVirtualizationFactory;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
@@ -122,7 +123,7 @@ public class UseWireMockToMockJdbcResultSetsTest {
     }
 
     @Test
-    public void intercepts_matching_query_and_responds_with_mockresultset() {
+    public void intercepts_matching_preparedstatement_and_responds_with_mockresultset() {
         final String NAME_ERICH_EICHINGER = "Erich Eichinger";
 
         // setup mock resultsets
@@ -153,6 +154,40 @@ public class UseWireMockToMockJdbcResultSetsTest {
             );
 
         assertThat(dateTime, equalTo("1980-01-01"));
+    }
+
+    @Test
+    @Ignore("to be implemented, see ")
+    public void intercepts_matching_query_and_responds_with_mockresultset() {
+        final String NAME_ERICH_EICHINGER = "Erich Eichinger";
+
+        // setup mock resultsets
+        WireMock.stubFor(WireMock
+                .post(WireMock.urlPathEqualTo("/sqlstub"))
+                    // SQL Statement is posted in the body, use any available matchers to match
+                .withRequestBody(WireMock.equalTo("SELECT birthday FROM PEOPLE"))
+                    // Parameters are sent with index has headername and value as headervalue
+                .withHeader("1", WireMock.equalTo(NAME_ERICH_EICHINGER))
+                    // return a recordset
+                .willReturn(WireMock
+                        .aResponse()
+                        .withBody(""
+                                + "<resultset>"
+                                + "     <cols><col>birthday</col></cols>"
+                                + "     <row><val>1980-01-01</val></row>"
+                                + "</resultset>"
+                        )
+                )
+        )
+        ;
+
+        List<String> dateTime = jdbcTemplate
+            .queryForList(
+                "SELECT birthday FROM PEOPLE WHERE name = ?"
+                , String.class
+            );
+
+        assertThat(dateTime.get(0), equalTo("1980-01-01"));
     }
 
     @Test
