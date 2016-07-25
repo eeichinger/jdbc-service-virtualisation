@@ -3,8 +3,9 @@ package org.eeichinger.servicevirtualisation.jdbc;
 import com.mockrunner.jdbc.CallableStatementResultSetHandler;
 import com.mockrunner.jdbc.PreparedStatementResultSetHandler;
 import com.mockrunner.jdbc.StatementResultSetHandler;
-import com.mockrunner.mock.jdbc.JDBCMockObjectFactory;
 import com.mockrunner.mock.jdbc.MockConnection;
+import com.mockrunner.mock.jdbc.MockDataSource;
+import com.mockrunner.mock.jdbc.MockStatement;
 import com.p6spy.engine.common.ConnectionInformation;
 import com.p6spy.engine.logging.P6LogOptions;
 import com.p6spy.engine.proxy.Delegate;
@@ -25,12 +26,14 @@ import org.apache.http.util.EntityUtils;
 
 import javax.sql.DataSource;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 /**
@@ -56,46 +59,79 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
     }
 
     public DataSource createMockDataSource() {
-        JDBCMockObjectFactory jdbcMockObjectFactory = new JDBCMockObjectFactory() {
-            @Override
-            public void registerMockDriver() {
-                // we don't want to auto-hijack DriverManager
-            }
+        MockDataSource dataSource = new MockDataSource() {{
+            setupConnection(new StubbingMockConnection());
+        }};
+        return interceptDataSource(dataSource);
+    }
 
-            @Override
-            public void restoreDrivers() {
-                // we don't want to auto-hijack DriverManager
-            }
-
-            @Override
-            public MockConnection createMockConnection() {
-                // this is a hack, leveraging the fact that getSQLException() is the first
-                // method checked to determine the mock resultset behaviour.
-                return new MockConnection(
-                    new StatementResultSetHandler() {
-                        @Override
-                        public SQLException getSQLException(String sql) {
-                            throw new AssertionError("unmatched sql statement: '" + sql + "'");
-                        }
-                    }
-                    , new PreparedStatementResultSetHandler() {
+    private static class StubbingMockConnection extends MockConnection {
+        public StubbingMockConnection() {
+            this(new SynchronizedStatementResultSetHandler()
+                , new PreparedStatementResultSetHandler() {
                     @Override
                     public SQLException getSQLException(String sql) {
                         throw new AssertionError("unmatched sql statement: '" + sql + "'");
                     }
                 }
-                    , new CallableStatementResultSetHandler() {
+                , new CallableStatementResultSetHandler() {
                     @Override
                     public SQLException getSQLException(String sql) {
                         throw new AssertionError("unmatched sql statement: '" + sql + "'");
                     }
                 }
-                );
+            );
+        }
+
+        public StubbingMockConnection(StatementResultSetHandler statementHandler, PreparedStatementResultSetHandler preparedStatementHandler, CallableStatementResultSetHandler callableStatementHandler) {
+            super(synchronizeMembers(statementHandler), synchronizeMembers(preparedStatementHandler), synchronizeMembers(callableStatementHandler));
+        }
+
+        @SneakyThrows
+        private static <T> T synchronizeMembers(T o) {
+            doWithFields(o.getClass(), f->syncField(o, f));
+            for(Field f : o.getClass().getDeclaredFields()) {
+                syncField(o, f);
             }
-        };
-        final MockConnection mockConnection = jdbcMockObjectFactory.getMockConnection();
-        jdbcMockObjectFactory.getMockDataSource().setupConnection(mockConnection);
-        return interceptDataSource(jdbcMockObjectFactory.getMockDataSource());
+            return o;
+        }
+
+        private static void doWithFields(Class<?> clazz, Consumer<Field> fc) {
+            // Keep backing up the inheritance hierarchy.
+            Class<?> targetClass = clazz;
+            do {
+                Field[] fields = targetClass.getDeclaredFields();
+                for (Field field : fields) {
+                    field.setAccessible(true);
+                    fc.accept(field);
+                }
+                targetClass = targetClass.getSuperclass();
+            }
+            while (targetClass != null && targetClass != Object.class);
+        }
+
+        @SneakyThrows
+        private static <T> void syncField(T o, Field f) {
+            Class<?> fieldType = f.getType();
+            Object value = f.get(o);
+            if (List.class.isAssignableFrom(fieldType) && value != null) {
+                f.set(o, Collections.synchronizedList((List<?>) value));
+            } else if (Map.class.isAssignableFrom(fieldType) && value != null) {
+                f.set(o, Collections.synchronizedMap((Map<?,?>)value));
+            }
+        }
+
+        private static class SynchronizedStatementResultSetHandler extends StatementResultSetHandler {
+            @Override
+            public SQLException getSQLException(String sql) {
+                throw new AssertionError("unmatched sql statement: '" + sql + "'");
+            }
+
+            @Override
+            public synchronized void addStatement(MockStatement statement) {
+                super.addStatement(statement);
+            }
+        }
     }
 
     @Override
@@ -142,7 +178,7 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
         try (CloseableHttpResponse response = httpclient.execute(httpPost)) {
             if (response.getStatusLine().getStatusCode() == 200) {
                 String responseContent = EntityUtils.toString(response.getEntity(), "utf-8");
-                if(int[].class.equals(method.getReturnType())) {
+                if (int[].class.equals(method.getReturnType())) {
                     return parseBatchUpdateRowsAffected(responseContent);
                 }
                 if (int.class.equals(method.getReturnType())) {
@@ -203,17 +239,20 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
 
     protected Delegate createConnectionPrepareStatementDelegate(final ConnectionInformation connectionInformation) {
         return (final Object proxy, final Object underlying, final Method method, final Object[] args) -> {
-            PreparedStatement statement = (PreparedStatement) method.invoke(underlying, args);
-            String query = (String) args[0];
-            GenericInvocationHandler<PreparedStatement> invocationHandler = createPreparedStatementInvocationHandler(connectionInformation, statement, query);
-            return ProxyFactory.createProxy(statement, invocationHandler);
+            synchronized (this) {
+                PreparedStatement statement = (PreparedStatement) method.invoke(underlying, args);
+                String query = (String) args[0];
+                GenericInvocationHandler<PreparedStatement> invocationHandler = createPreparedStatementInvocationHandler(connectionInformation, statement, query);
+                return ProxyFactory.createProxy(statement, invocationHandler);
+            }
         };
     }
 
     protected Delegate createPreparedStatementExecuteDelegate(final PreparedStatementInformation preparedStatementInformation) {
         return (final Object proxy, final Object underlying, final Method method, final Object[] args) -> {
-
-            return interceptPreparedStatementExecution(preparedStatementInformation, underlying, method, args);
+            synchronized (preparedStatementInformation.getConnectionInformation()) {
+                return interceptPreparedStatementExecution(preparedStatementInformation, underlying, method, args);
+            }
         };
     }
 
@@ -327,7 +366,7 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
      * @return array with corresponding number of updated rows for each batch
      */
     private static int[] parseBatchUpdateRowsAffected(String responseContent) {
-        return Stream.of(responseContent.split(",")).mapToInt(s->Integer.parseInt(s)).toArray();
+        return Stream.of(responseContent.split(",")).mapToInt(s -> Integer.parseInt(s)).toArray();
     }
 
 }

@@ -6,7 +6,8 @@
         </encoder>
     </appender>
     <!--<logger level="DEBUG" name="org.apache.http.wire"/>-->
-    <root level="DEBUG">
+    <logger level="DEBUG" name="org.eeichinger"/>
+    <root level="INFO">
         <appender-ref ref="STDOUT"/>
     </root>
 </configuration>
