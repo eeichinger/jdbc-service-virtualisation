@@ -198,7 +198,7 @@ the library is available from Maven Central via
 <dependency>
     <groupId>com.github.eeichinger.service-virtualisation</groupId>
     <artifactId>jdbc-service-virtualisation</artifactId>
-    <version>0.0.3.RELEASE</version>
+    <version>0.0.4.RELEASE</version>
 </dependency>
 ----
 
@@ -230,6 +230,11 @@ reports (Javadoc etc.) are published on https://eeichinger.github.com/jdbc-servi
 ## Change Log
 
 The project will follow semantic versioning as soon as a stable 1.x.x line is released. For 0.x.x releases please expect binary incompatible changes.
+
+### 0.0.4.RELEASE (2016-07-25)
+
+.Bugs
+- https://github.com/eeichinger/jdbc-service-virtualisation/issues/11[#11] Connections returned from MockDataSource are not threadsafe
 
 ### 0.0.3.RELEASE (2016-07-12)
 
