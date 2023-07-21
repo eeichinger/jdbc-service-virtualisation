@@ -241,6 +241,7 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
             ResultSet cachedResultSet = cacheResultSet((ResultSet) actualResult);
             recorder.writeOutMapping(preparedStatementInformation, cachedResultSet);
             cachedResultSet.beforeFirst();
+            return cachedResultSet;
         }
 
         return actualResult;
