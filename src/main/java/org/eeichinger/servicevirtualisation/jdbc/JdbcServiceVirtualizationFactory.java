@@ -60,6 +60,10 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
     @Setter
     private WireMockMappingJsonRecorder recorder;
 
+    @Setter
+    private MockResultSetHelper mockResultSetHelper = new MockResultSetHelper();
+
+
     public DataSource spyOnDataSource(DataSource ds) {
         return interceptDataSource(ds);
     }
@@ -211,7 +215,7 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
     }
 
     protected MockResultSet parseResultSetFromResponseContent(String responseContent) {
-        return new MockResultSetHelper().parseResultSetFromSybaseXmlString("x", responseContent);
+        return mockResultSetHelper.parseResultSetFromSybaseXmlString("x", responseContent);
     }
 
     protected Throwable getExceptionFromResponse(CloseableHttpResponse response) {

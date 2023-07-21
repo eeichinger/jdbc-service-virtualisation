@@ -1,5 +1,6 @@
 package org.eeichinger.servicevirtualisation.jdbc;
 
+import lombok.Setter;
 import lombok.SneakyThrows;
 
 import java.io.FileWriter;
@@ -17,6 +18,19 @@ import java.util.stream.IntStream;
  * Workflow: these files can be renamed and move to the directory that WireMock is expecting (e.g. /test/resources/mappings)
  */
 public class WireMockMappingJsonRecorder {
+
+    @Setter
+    private XmlTypeRegistry xmlTypeRegistry;
+
+    public WireMockMappingJsonRecorder() {
+        this(false);
+    }
+
+    public WireMockMappingJsonRecorder(boolean useExplicitTypes) {
+        if (useExplicitTypes) {
+            xmlTypeRegistry = new XmlTypeRegistry();
+        }
+    }
 
     private int statementInTest = 0;
 
@@ -50,7 +64,18 @@ public class WireMockMappingJsonRecorder {
                 if (rowValue == null) {
                     parameterXml.append("<val xsi:nil='true'></val>");
                 } else {
-                    parameterXml.append("<val>").append(rowValue).append("</val>");
+                    if (xmlTypeRegistry != null) {
+                        String mappedType = xmlTypeRegistry.getXmlType(rowValue.getClass());
+                        if (mappedType != null) {
+                            parameterXml.append("<val xsi:type='").append(mappedType).append("'>").append(rowValue).append("</val>");
+                        } else if (rowValue instanceof String) {
+                            parameterXml.append("<val>").append(rowValue).append("</val>");
+                        } else {
+                            throw new RuntimeException("Didn't know how to write out " + rowValue + " of class " + rowValue.getClass());
+                        }
+                    } else { //always coerce to string
+                        parameterXml.append("<val>").append(rowValue).append("</val>");
+                    }
                 }
             }
             parameterXml.append("</row>");

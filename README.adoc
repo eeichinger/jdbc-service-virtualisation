@@ -188,6 +188,25 @@ For "named" column formats, simply omit the element to emulate NULL values. Alte
 </resultset>
 ----
 
+### Typed values
+
+If your code is aware of the types (e.g. by calling getInt on the ResultSet) then it is sufficient to read Strings and the MockResultSet will do the coercion. However, if your code ends up using getObject like some of Spring's methods, then it will always return a String when the real driver would return the actual type.
+Type can be encoded to mock how the driver returns:
+[source,xml]
+----
+<resultset xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'>
+     <cols><col>name</col><col>age</col></cols>
+     <row><name>Erich Eichinger</name><age xsi:type='xs:integer'>10</age></row>
+     <row><col>Matthias Bernlöhr</col><col xsi:type='xs:integer'>20</col></row>
+</resultset>
+----
+
+More types can be added by modifying or extending the XmlTypeRegistry.
+
+## Recording in spy mode
+It is possible to record the jdbc traffic when in spy mode. This will depend on your specific setup. A default version is provided using WireMock mapping json files.
+see link:src/test/java/org/eeichinger/servicevirtualisation/jdbc/WireMockMappingJsonRecorderTest.java[]
+To enable without any changes, you can set the recorder field on the JdbcServiceVirtualizationFactory to the provided implementation. Likely you will wish to extend this class for your own case.
 
 ## Getting the Binaries
 

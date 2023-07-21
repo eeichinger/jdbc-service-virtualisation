@@ -9,6 +9,7 @@ import java.util.Map;
 
 import com.mockrunner.base.NestedApplicationException;
 import com.mockrunner.mock.jdbc.MockResultSet;
+import lombok.Setter;
 import org.jdom.Document;
 import org.jdom.Element;
 import org.jdom.Namespace;
@@ -19,6 +20,9 @@ import org.jdom.input.SAXBuilder;
  * @since 25/06/2016
  */
 public class MockResultSetHelper {
+
+    @Setter
+    private XmlTypeRegistry xmlTypeRegistry = new XmlTypeRegistry();
 
     /**
      * Parse a MockResultSet from the provided Sybase-style formatted XML Document.
@@ -66,8 +70,8 @@ public class MockResultSetHelper {
 
     protected class DatabaseRow {
         final List<String> colNames;
-        final Map<String, String> namedValues;
-        final String[] positionalValues;
+        final Map<String, Object> namedValues;
+        final Object[] positionalValues;
 
         int colCount;
 
@@ -75,12 +79,12 @@ public class MockResultSetHelper {
             this.colNames = colNames;
             this.colCount = 0;
             this.namedValues = new HashMap<>();
-            this.positionalValues = new String[this.colNames.size()];
+            this.positionalValues = new Object[this.colNames.size()];
         }
 
         public void add(Element col) {
             String name = getElementName(col);
-            String val = getNilableElementText(col);
+            Object val = getNilableElementText(col);
             if (colNames.contains(name)) {
                 namedValues.put(name, val);
             } else {
@@ -93,7 +97,7 @@ public class MockResultSetHelper {
             List<Object> vals = new ArrayList<>(this.colNames.size());
             for(int i=0;i<colNames.size();i++) {
                 String colName = colNames.get(i);
-                String colValue;
+                Object colValue;
                 if (namedValues.containsKey(colName)) {
                     colValue = namedValues.get(colName);
                 } else {
@@ -105,10 +109,16 @@ public class MockResultSetHelper {
         }
     }
 
-    protected String getNilableElementText(Element col) {
+    protected Object getNilableElementText(Element col) {
         String val = col.getText();
         if ("true".equalsIgnoreCase(col.getAttributeValue("nil", nsXsi))) {
-            val = null;
+            return null;
+        }
+        else {
+            String type = col.getAttributeValue("type", nsXsi);
+            if (type != null) {
+                return xmlTypeRegistry.parseValue(type, val);
+            }
         }
         return val;
     }

@@ -6,6 +6,7 @@ import lombok.SneakyThrows;
 import org.junit.Test;
 
 import java.io.File;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -60,5 +61,28 @@ public class WireMockMappingJsonRecorderTest {
         assertThat(new File("src/test/resources/newMappings/1.json").exists(), equalTo(true));
         assertThat(new File("src/test/resources/newMappings/2.json").exists(), equalTo(true));
 
+    }
+
+    @Test
+    @SneakyThrows
+    public void testTypeMappings() {
+        WireMockMappingJsonRecorder recorder = new WireMockMappingJsonRecorder(true);
+        JdbcServiceVirtualizationFactory.PreparedStatementInformation preparedStatementInformation = new JdbcServiceVirtualizationFactory.PreparedStatementInformation(new ConnectionInformation());
+        preparedStatementInformation.setSql("SELECT *");
+
+        MockResultSet resultSet = new MockResultSet("x");
+        resultSet.addColumn("decimal");
+        resultSet.addColumn("int");
+        resultSet.addColumn("long");
+        resultSet.addColumn("string");
+        resultSet.addRow(Arrays.asList(new BigDecimal("14.33"), 2, 3L, "hello"));
+
+        new File("src/test/resources/newMappings/").mkdirs();
+        recorder.writeOutMapping(preparedStatementInformation, resultSet);
+
+        List<String> expectedLines = Files.readAllLines(Paths.get("src/test/resources/expectedRecordingWithTypes.json"));
+        List<String> actualLines = Files.readAllLines(Paths.get("src/test/resources/newMappings/1.json"));
+
+        assertThat(actualLines, equalTo(expectedLines));
     }
 }
