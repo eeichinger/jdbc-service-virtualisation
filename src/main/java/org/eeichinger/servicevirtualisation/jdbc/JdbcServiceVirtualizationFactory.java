@@ -5,6 +5,7 @@ import com.mockrunner.jdbc.PreparedStatementResultSetHandler;
 import com.mockrunner.jdbc.StatementResultSetHandler;
 import com.mockrunner.mock.jdbc.MockConnection;
 import com.mockrunner.mock.jdbc.MockDataSource;
+import com.mockrunner.mock.jdbc.MockResultSet;
 import com.mockrunner.mock.jdbc.MockStatement;
 import com.p6spy.engine.common.ConnectionInformation;
 import com.p6spy.engine.logging.P6LogOptions;
@@ -15,6 +16,9 @@ import com.p6spy.engine.proxy.ProxyFactory;
 import com.p6spy.engine.spy.P6Factory;
 import com.p6spy.engine.spy.P6LoadableOptions;
 import com.p6spy.engine.spy.option.P6OptionsRepository;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.SneakyThrows;
 import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -25,14 +29,20 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 
 import javax.sql.DataSource;
-
+import javax.sql.rowset.CachedRowSet;
+import javax.sql.rowset.RowSetProvider;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -44,15 +54,15 @@ import java.util.stream.Stream;
  */
 public class JdbcServiceVirtualizationFactory implements P6Factory {
 
+    @Getter @Setter
     private String targetUrl;
 
-    public String getTargetUrl() {
-        return targetUrl;
-    }
+    @Setter
+    private WireMockMappingJsonRecorder recorder;
 
-    public void setTargetUrl(String targetUrl) {
-        this.targetUrl = targetUrl;
-    }
+    @Setter
+    private MockResultSetHelper mockResultSetHelper = new MockResultSetHelper();
+
 
     public DataSource spyOnDataSource(DataSource ds) {
         return interceptDataSource(ds);
@@ -135,7 +145,7 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
     }
 
     @Override
-    public Connection getConnection(Connection conn) throws SQLException {
+    public Connection getConnection(Connection conn) {
         return interceptConnection(conn);
     }
 
@@ -168,62 +178,82 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
     protected Object interceptPreparedStatementExecution(PreparedStatementInformation preparedStatementInformation, Object underlying, Method method, Object[] args) {
         CloseableHttpClient httpclient = HttpClients.createDefault();
 
+        HttpPost httpPost = prepareHttpCall(preparedStatementInformation);
+
+        try (CloseableHttpResponse response = httpclient.execute(httpPost)) {
+            if (response.getStatusLine().getStatusCode() == 200) {
+                return getResultFromHttpResponse(response, method.getReturnType());
+            }
+            if (response.getStatusLine().getStatusCode() == 400) {
+                throw getExceptionFromResponse(response);
+            }
+        }
+
+        return callUnderlyingMethod(underlying, method, args, preparedStatementInformation);
+    }
+
+    protected HttpPost prepareHttpCall(PreparedStatementInformation preparedStatementInformation) {
         final String sql = preparedStatementInformation.getSql();
         HttpPost httpPost = new HttpPost(targetUrl);
         for (Map.Entry<Integer, Object> e : preparedStatementInformation.getParameterValues().entrySet()) {
             httpPost.setHeader(e.getKey().toString(), Objects.toString(e.getValue()));
         }
         httpPost.setEntity(new StringEntity(sql, "utf-8"));
+        return httpPost;
+    }
 
-        try (CloseableHttpResponse response = httpclient.execute(httpPost)) {
-            if (response.getStatusLine().getStatusCode() == 200) {
-                String responseContent = EntityUtils.toString(response.getEntity(), "utf-8");
-                if (int[].class.equals(method.getReturnType())) {
-                    return parseBatchUpdateRowsAffected(responseContent);
-                }
-                if (int.class.equals(method.getReturnType())) {
-                    return Integer.parseInt(responseContent);
-                }
-                return MockResultSetHelper.parseResultSetFromSybaseXmlString("x", responseContent);
-            }
-            if (response.getStatusLine().getStatusCode() == 400) {
-                final Header reasonHeader = response.getFirstHeader("reason");
-                if (reasonHeader == null) throw new AssertionError("missing 'reason' response header");
-                final String sqlState = response.getFirstHeader("sqlstate") != null ? response.getFirstHeader("sqlstate").getValue() : null;
-                final int vendorCode = response.getFirstHeader("vendorcode") != null ? Integer.parseInt(response.getFirstHeader("vendorcode").getValue()) : 0;
-                throw new SQLException(reasonHeader.getValue(), sqlState, vendorCode);
-            }
+    @SneakyThrows
+    protected Object getResultFromHttpResponse(CloseableHttpResponse response, Class<?> returnType) {
+        String responseContent = EntityUtils.toString(response.getEntity(), "utf-8");
+        if (int[].class.equals(returnType)) {
+            return parseBatchUpdateRowsAffected(responseContent);
+        }
+        if (int.class.equals(returnType)) {
+            return Integer.parseInt(responseContent);
+        }
+        return parseResultSetFromResponseContent(responseContent);
+    }
+
+    protected MockResultSet parseResultSetFromResponseContent(String responseContent) {
+        return mockResultSetHelper.parseResultSetFromSybaseXmlString("x", responseContent);
+    }
+
+    protected Throwable getExceptionFromResponse(CloseableHttpResponse response) {
+        final Header reasonHeader = response.getFirstHeader("reason");
+        if (reasonHeader == null) return new AssertionError("missing 'reason' response header");
+        final String sqlState = response.getFirstHeader("sqlstate") != null ? response.getFirstHeader("sqlstate").getValue() : null;
+        final int vendorCode = response.getFirstHeader("vendorcode") != null ? Integer.parseInt(response.getFirstHeader("vendorcode").getValue()) : 0;
+        return new SQLException(reasonHeader.getValue(), sqlState, vendorCode);
+    }
+
+    @SneakyThrows
+    public ResultSet cacheResultSet(ResultSet resultSet) {
+        CachedRowSet cachedRowSet = RowSetProvider.newFactory().createCachedRowSet();
+        cachedRowSet.populate(resultSet);
+        return cachedRowSet;
+    }
+
+    @SneakyThrows
+    protected Object callUnderlyingMethod(Object underlying, Method method, Object[] args, PreparedStatementInformation preparedStatementInformation) {
+        Object actualResult = method.invoke(underlying, args);
+
+        if (recorder != null && actualResult instanceof ResultSet) {
+            ResultSet cachedResultSet = cacheResultSet((ResultSet) actualResult);
+            recorder.writeOutMapping(preparedStatementInformation, cachedResultSet);
+            cachedResultSet.beforeFirst();
+            return cachedResultSet;
         }
 
-        final Object result = method.invoke(underlying, args);
-        return result;
+        return actualResult;
+
     }
 
 
+    @RequiredArgsConstructor
     static class PreparedStatementInformation {
-        ConnectionInformation connectionInformation;
-        String sql;
-        Map<Integer, Object> parameterValues = new HashMap<Integer, Object>();
-
-        public PreparedStatementInformation(ConnectionInformation connectionInformation) {
-            this.connectionInformation = connectionInformation;
-        }
-
-        public ConnectionInformation getConnectionInformation() {
-            return connectionInformation;
-        }
-
-        public String getSql() {
-            return sql;
-        }
-
-        public Map<Integer, Object> getParameterValues() {
-            return parameterValues;
-        }
-
-        public void setStatementQuery(String sql) {
-            this.sql = sql;
-        }
+        @Getter private final ConnectionInformation connectionInformation;
+        @Getter @Setter private String sql;
+        @Getter private final Map<Integer, Object> parameterValues = new HashMap<>();
 
         public void setParameterValue(int position, Object value) {
             parameterValues.put(position, value);
@@ -319,7 +349,7 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
 
             super(underlying);
             PreparedStatementInformation preparedStatementInformation = new PreparedStatementInformation(connectionInformation);
-            preparedStatementInformation.setStatementQuery(query);
+            preparedStatementInformation.setSql(query);
 
             Delegate executeDelegate = createPreparedStatementExecuteDelegate(preparedStatementInformation);
             Delegate setParameterValueDelegate = new P6MockPreparedStatementSetParameterValueDelegate(preparedStatementInformation);
@@ -366,7 +396,7 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
      * @return array with corresponding number of updated rows for each batch
      */
     private static int[] parseBatchUpdateRowsAffected(String responseContent) {
-        return Stream.of(responseContent.split(",")).mapToInt(s -> Integer.parseInt(s)).toArray();
+        return Stream.of(responseContent.split(",")).mapToInt(Integer::parseInt).toArray();
     }
 
 }

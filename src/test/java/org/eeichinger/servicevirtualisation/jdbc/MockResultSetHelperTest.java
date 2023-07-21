@@ -32,7 +32,7 @@ public class MockResultSetHelperTest {
 
         System.out.println(xml);
 
-        final MockResultSet resultSet = MockResultSetHelper.parseResultSetFromSybaseXmlString("x", xml);
+        final MockResultSet resultSet = new MockResultSetHelper().parseResultSetFromSybaseXmlString("x", xml);
 
         assertThat(resultSet.getColumnCount(), equalTo(3));
         assertThat(resultSet.getRowCount(), equalTo(4));
@@ -63,7 +63,7 @@ public class MockResultSetHelperTest {
             + "     <row><col>James Bond</col><col>1900-01-04</col><col>Philadelphia</col></row>\n"
             + "</resultset>\n";
 
-        final MockResultSet resultSet = MockResultSetHelper.parseResultSetFromSybaseXmlString("x", xml);
+        final MockResultSet resultSet = new MockResultSetHelper().parseResultSetFromSybaseXmlString("x", xml);
 
         assertThat(resultSet.getColumnCount(), equalTo(3));
         assertThat(resultSet.getRowCount(), equalTo(1));
@@ -81,7 +81,7 @@ public class MockResultSetHelperTest {
             + "     <row><name>James Bond</name><col name='birthday' xsi:nil='true' /><placeofbirth>Philadelphia</placeofbirth></row>\n"
             + "</resultset>\n";
 
-        final MockResultSet resultSet = MockResultSetHelper.parseResultSetFromSybaseXmlString("x", xml);
+        final MockResultSet resultSet = new MockResultSetHelper().parseResultSetFromSybaseXmlString("x", xml);
 
         assertThat(resultSet.getColumnCount(), equalTo(3));
         assertThat(resultSet.getRowCount(), equalTo(1));
@@ -100,7 +100,7 @@ public class MockResultSetHelperTest {
             + "     <row><col>James Bond</col><col xsi:nil='true'/><col>Philadelphia</col></row>\n"
             + "</resultset>\n";
 
-        final MockResultSet resultSet = MockResultSetHelper.parseResultSetFromSybaseXmlString("x", xml);
+        final MockResultSet resultSet = new MockResultSetHelper().parseResultSetFromSybaseXmlString("x", xml);
 
         assertThat(resultSet.getColumnCount(), equalTo(3));
         assertThat(resultSet.getRowCount(), equalTo(1));
@@ -119,7 +119,7 @@ public class MockResultSetHelperTest {
             + "     <row><col>James Bond</col><col /><col>Philadelphia</col></row>\n"
             + "</resultset>\n";
 
-        final MockResultSet resultSet = MockResultSetHelper.parseResultSetFromSybaseXmlString("x", xml);
+        final MockResultSet resultSet = new MockResultSetHelper().parseResultSetFromSybaseXmlString("x", xml);
 
         assertThat(resultSet.getColumnCount(), equalTo(3));
         assertThat(resultSet.getRowCount(), equalTo(1));
@@ -138,7 +138,7 @@ public class MockResultSetHelperTest {
             + "     <row><name>James Bond</name><placeofbirth>Philadelphia</placeofbirth></row>\n"
             + "</resultset>\n";
 
-        final MockResultSet resultSet = MockResultSetHelper.parseResultSetFromSybaseXmlString("x", xml);
+        final MockResultSet resultSet = new MockResultSetHelper().parseResultSetFromSybaseXmlString("x", xml);
 
         assertThat(resultSet.getColumnCount(), equalTo(3));
         assertThat(resultSet.getRowCount(), equalTo(1));
@@ -157,7 +157,7 @@ public class MockResultSetHelperTest {
             + "     <row><placeofbirth>Philadelphia</placeofbirth><name>James Bond</name></row>\n"
             + "</resultset>\n";
 
-        final MockResultSet resultSet = MockResultSetHelper.parseResultSetFromSybaseXmlString("x", xml);
+        final MockResultSet resultSet = new MockResultSetHelper().parseResultSetFromSybaseXmlString("x", xml);
 
         assertThat(resultSet.getColumnCount(), equalTo(3));
         assertThat(resultSet.getRowCount(), equalTo(1));

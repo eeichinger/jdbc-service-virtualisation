@@ -1,11 +1,5 @@
 package example;
 
-import java.sql.PreparedStatement;
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.sql.DataSource;
-
 import com.github.tomakehurst.wiremock.client.WireMock;
 import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import lombok.Value;
@@ -18,8 +12,14 @@ import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 
-import static org.hamcrest.MatcherAssert.*;
-import static org.hamcrest.Matchers.*;
+import javax.sql.DataSource;
+import java.sql.PreparedStatement;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 
 /**
  * Demonstrates you to use the technique to just spy on a real database and intercept/mock only selected jdbc queries
@@ -119,6 +119,47 @@ public class UseWireMockToMockJdbcResultSetsTest {
         assertThat(matthias.getName(), equalTo("Matthias Bernlöhr"));
         assertThat(matthias.getBirthdate(), nullValue());
         assertThat(matthias.getPlaceOfBirth(), nullValue());
+    }
+
+    @Test
+    public void can_mock_types() {
+        // setup mock resultsets
+        WireMock.stubFor(WireMock
+            .post(WireMock.urlPathEqualTo("/sqlstub"))
+            // SQL Statement is posted in the body, use any available matchers to match
+            .withRequestBody(WireMock.equalTo("SELECT * FROM PEOPLE WHERE name=?"))
+            // return a recordset
+            .willReturn(WireMock
+                .aResponse()
+                .withHeader("content-type", "application/xml; charset=utf-8")
+                .withBody(""
+                    + "<resultset xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'>"
+                    + "<cols><col>name</col><col>age</col></cols>"
+                    // xsi:type can be set on the column
+                    + "     <row><name>Erich Eichinger</name><age xsi:type='xs:integer'>10</age></row>"
+                    + "     <row><col>Matthias Bernlöhr</col><col xsi:type='xs:integer'>20</col></row>"
+                    + "</resultset>"
+                )
+            )
+        );
+
+        RowMapper<NameAge> rowMapper = (rs, rowNum) ->
+            new NameAge(rs.getString("name"),
+                (int) rs.getObject("age")); //NB getObject can be used since the type is known to the ResultSet
+
+        List<NameAge> result = jdbcTemplate
+            .query(
+                "SELECT * FROM PEOPLE WHERE name=?"
+                , rowMapper
+                , args("Erich Eichinger")
+            );
+
+        NameAge erich = result.get(0);
+        assertThat(erich.getName(), equalTo("Erich Eichinger"));
+        assertThat(erich.getAge(), equalTo(10));
+        NameAge matthias = result.get(1);
+        assertThat(matthias.getName(), equalTo("Matthias Bernlöhr"));
+        assertThat(matthias.getAge(), equalTo(20));
     }
 
     @Test
@@ -370,6 +411,12 @@ public class UseWireMockToMockJdbcResultSetsTest {
         String name;
         String birthdate;
         String placeOfBirth;
+    }
+
+    @Value
+    private static class NameAge {
+        String name;
+        int age;
     }
 
     private static Object[] args(Object... args) {
