@@ -210,7 +210,7 @@ For bugs, feature requests or questions and discussions please use GitHub issues
 
 ### Building
 
-To build the project simply run
+Works on JDK1.8. To build the project simply run
 
     mvn clean install
 

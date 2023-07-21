@@ -37,8 +37,8 @@ public class MockResultSetHelper {
      * </resultset>
      * }</pre>
      */
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    public static MockResultSet parseResultSetFromSybaseXmlString(String id, String xml) {
+    @SuppressWarnings({"unchecked"})
+    public MockResultSet parseResultSetFromSybaseXmlString(String id, String xml) {
         MockResultSet resultSet = new MockResultSet(id);
         SAXBuilder builder = new SAXBuilder();
         Document doc;
@@ -64,7 +64,7 @@ public class MockResultSetHelper {
         return resultSet;
     }
 
-    private static class DatabaseRow {
+    protected class DatabaseRow {
         final List<String> colNames;
         final Map<String, String> namedValues;
         final String[] positionalValues;
@@ -105,7 +105,7 @@ public class MockResultSetHelper {
         }
     }
 
-    private static String getNilableElementText(Element col) {
+    protected String getNilableElementText(Element col) {
         String val = col.getText();
         if ("true".equalsIgnoreCase(col.getAttributeValue("nil", nsXsi))) {
             val = null;
@@ -113,7 +113,7 @@ public class MockResultSetHelper {
         return val;
     }
 
-    private static List<String> parseColumnNames(MockResultSet resultSet, Element root) {
+    protected List<String> parseColumnNames(MockResultSet resultSet, Element root) {
         // determine columns
         Element colsHeaderRow = root.getChild("cols");
         List<String> colNames = new ArrayList<>();
@@ -134,17 +134,12 @@ public class MockResultSetHelper {
         return Collections.unmodifiableList(colNames);
     }
 
-    private static String getElementName(Element col) {
+    protected String getElementName(Element col) {
         String name = col.getAttributeValue("name");
         if (name == null) {
             name = col.getName();
         }
         return name;
-    }
-
-    @SuppressWarnings("unchecked")
-    private static <T> List<T> cast(List<?> list) {
-        return (List<T>) list;
     }
 
     @SuppressWarnings("unchecked")
