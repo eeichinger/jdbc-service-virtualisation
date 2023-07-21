@@ -11,11 +11,13 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 public class WireMockMappingJsonRecorderTest {
     @Test
     @SneakyThrows
@@ -42,7 +44,7 @@ public class WireMockMappingJsonRecorderTest {
     @Test
     public void testJsonsAreAddedSequentially() {
         new File("src/test/resources/newMappings/").mkdirs();
-        for (File file : new File("src/test/resources/newMappings/").listFiles()) {
+        for (File file : Objects.requireNonNull(new File("src/test/resources/newMappings/").listFiles())) {
             file.delete();
         }
 

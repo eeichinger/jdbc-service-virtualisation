@@ -12,7 +12,7 @@ import java.util.function.Function;
 
 public class XmlTypeRegistry {
 
-    private static List<XmlTypeInfo<?>> DEFAULT_TYPES = new ArrayList<>();
+    private static final List<XmlTypeInfo<?>> DEFAULT_TYPES = new ArrayList<>();
     static {
         DEFAULT_TYPES.add(new XmlTypeInfo<>(BigDecimal.class, "xs:decimal", BigDecimal::new));
         DEFAULT_TYPES.add(new XmlTypeInfo<>(Integer.class, "xs:integer", Integer::new));
