@@ -1,0 +1,20 @@
+{
+  "request": {
+    "method": "POST",
+    "url": "/sqlstub",
+    "bodyPatterns":
+            [
+              {
+                "equalTo": "SELECT birthday, placeofbirth FROM PEOPLE WHERE name = ?"
+              }
+            ],
+    "headers": {
+       "0": {
+        "equalTo": "Erich Eichinger"
+      }}
+  },
+  "response": {
+    "status": 200,
+    "body": "<resultset xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'><cols><col>birthday</col><col>placeofbirth</col></cols><row><val>1980-01-01</val><val>Vienna</val></row></resultset>"
+  }
+}

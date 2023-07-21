@@ -29,10 +29,13 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 
 import javax.sql.DataSource;
+import javax.sql.rowset.CachedRowSet;
+import javax.sql.rowset.RowSetProvider;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Collections;
@@ -53,6 +56,9 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
 
     @Getter @Setter
     private String targetUrl;
+
+    @Setter
+    private WireMockMappingJsonRecorder recorder;
 
     public DataSource spyOnDataSource(DataSource ds) {
         return interceptDataSource(ds);
@@ -179,7 +185,7 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
             }
         }
 
-        return callUnderlyingMethod(underlying, method, args);
+        return callUnderlyingMethod(underlying, method, args, preparedStatementInformation);
     }
 
     protected HttpPost prepareHttpCall(PreparedStatementInformation preparedStatementInformation) {
@@ -217,8 +223,24 @@ public class JdbcServiceVirtualizationFactory implements P6Factory {
     }
 
     @SneakyThrows
-    protected Object callUnderlyingMethod(Object underlying, Method method, Object[] args) {
-        return method.invoke(underlying, args);
+    public ResultSet cacheResultSet(ResultSet resultSet) {
+        CachedRowSet cachedRowSet = RowSetProvider.newFactory().createCachedRowSet();
+        cachedRowSet.populate(resultSet);
+        return cachedRowSet;
+    }
+
+    @SneakyThrows
+    protected Object callUnderlyingMethod(Object underlying, Method method, Object[] args, PreparedStatementInformation preparedStatementInformation) {
+        Object actualResult = method.invoke(underlying, args);
+
+        if (recorder != null && actualResult instanceof ResultSet) {
+            ResultSet cachedResultSet = cacheResultSet((ResultSet) actualResult);
+            recorder.writeOutMapping(preparedStatementInformation, cachedResultSet);
+            cachedResultSet.beforeFirst();
+        }
+
+        return actualResult;
+
     }
 
 
